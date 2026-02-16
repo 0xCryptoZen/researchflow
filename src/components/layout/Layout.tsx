@@ -13,6 +13,7 @@ const navItems = [
   { path: '/tasks', label: 'Tasks', icon: '✅' },
   { path: '/conferences', label: 'Conferences', icon: '📅' },
   { path: '/reminders', label: 'Reminders', icon: '🔔' },
+  { path: '/outline', label: 'Outline', icon: '📋' },
   { path: '/templates', label: 'Templates', icon: '📝' },
 ];
 

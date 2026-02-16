@@ -145,8 +145,8 @@
         "大纲导出功能"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成论文大纲生成，包含标准学术论文结构模板、大纲编辑保存、导出Markdown功能"
     },
     {
       "id": "US-011",
