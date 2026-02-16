@@ -12,6 +12,7 @@ const navItems = [
   { path: '/papers', label: '我的论文', icon: '📄' },
   { path: '/tasks', label: 'Tasks', icon: '✅' },
   { path: '/conferences', label: 'Conferences', icon: '📅' },
+  { path: '/reminders', label: 'Reminders', icon: '🔔' },
   { path: '/templates', label: 'Templates', icon: '📝' },
 ];
 

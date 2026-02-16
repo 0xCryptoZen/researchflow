@@ -7,6 +7,7 @@ import Papers from './pages/Papers';
 import MyPapers from './pages/MyPapers';
 import Conferences from './pages/Conferences';
 import Tasks from './pages/Tasks';
+import Reminders from './pages/Reminders';
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/papers" element={<Layout><MyPapers /></Layout>} />
         <Route path="/conferences" element={<Layout><Conferences /></Layout>} />
         <Route path="/tasks" element={<Layout><Tasks /></Layout>} />
+        <Route path="/reminders" element={<Layout><Reminders /></Layout>} />
         <Route path="/templates" element={<Layout><div className="text-slate-600">模板库页面 - 开发中</div></Layout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
