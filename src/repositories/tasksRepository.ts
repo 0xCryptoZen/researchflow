@@ -8,8 +8,8 @@ export interface Task {
   status: 'todo' | 'in-progress' | 'completed';
   priority: 'high' | 'medium' | 'low';
   dueDate?: string;
-  paperId?: string;
-  conferenceId?: string;
+  relatedPaperId?: string;
+  relatedConferenceId?: string;
   createdAt: string;
   completedAt?: string;
 }
@@ -25,7 +25,7 @@ export const tasksRepository = {
     repo.saveAll(items);
   },
 
-  add(input: Pick<Task, 'title' | 'description' | 'priority' | 'dueDate'>): void {
+  add(input: Pick<Task, 'title' | 'description' | 'priority' | 'dueDate' | 'relatedPaperId' | 'relatedConferenceId'>): void {
     const task: Task = {
       id: Date.now().toString(),
       title: input.title,
@@ -49,6 +49,19 @@ export const tasksRepository = {
         };
       })
     );
+  },
+
+  update(id: string, updates: Partial<Pick<Task, 'title' | 'description' | 'priority' | 'dueDate' | 'relatedPaperId' | 'relatedConferenceId'>>): void {
+    repo.saveAll(
+      repo.getAll().map((task) => {
+        if (task.id !== id) return task;
+        return { ...task, ...updates };
+      })
+    );
+  },
+
+  getById(id: string): Task | undefined {
+    return repo.getAll().find(t => t.id === id);
   },
 
   deleteById(id: string): void {
