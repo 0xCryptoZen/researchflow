@@ -15,6 +15,7 @@ const navItems = [
   { path: '/reminders', label: 'Reminders', icon: '🔔' },
   { path: '/outline', label: 'Outline', icon: '📋' },
   { path: '/references', label: 'References', icon: '📚' },
+  { path: '/charts', label: 'Charts', icon: '📊' },
   { path: '/templates', label: 'Templates', icon: '📝' },
 ];
 

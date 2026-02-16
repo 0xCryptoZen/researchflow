@@ -173,8 +173,8 @@
         "图表复用功能"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成图表管理，包含图片上传、标签管理、图表库浏览、筛选功能"
     },
     {
       "id": "US-013",
