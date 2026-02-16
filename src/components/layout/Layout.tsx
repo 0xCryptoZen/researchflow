@@ -8,7 +8,8 @@ interface LayoutProps {
 
 const navItems = [
   { path: '/', label: 'Dashboard', icon: '📊' },
-  { path: '/papers', label: 'Papers', icon: '📄' },
+  { path: '/papers/search', label: '搜索论文', icon: '🔍' },
+  { path: '/papers', label: '我的论文', icon: '📄' },
   { path: '/tasks', label: 'Tasks', icon: '✅' },
   { path: '/conferences', label: 'Conferences', icon: '📅' },
   { path: '/templates', label: 'Templates', icon: '📝' },

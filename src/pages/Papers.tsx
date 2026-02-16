@@ -1,12 +1,24 @@
 import { useState } from 'react';
 import { searchAll, type SearchResult } from '../services/papers';
 
+const STORAGE_KEY = 'researchflow_papers';
+
+interface SavedPaper extends SearchResult {
+  savedAt: string;
+  notes: string;
+  tags: string[];
+  isFavorite?: boolean;
+}
+
 export default function Papers() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedSource, setSelectedSource] = useState<string>('all');
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [savedIds, setSavedIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved).map((p: SavedPaper) => p.id) : [];
+  });
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -25,12 +37,21 @@ export default function Papers() {
     }
   };
 
-  const toggleFavorite = (id: string) => {
-    setFavorites(prev => 
-      prev.includes(id) 
-        ? prev.filter(f => f !== id)
-        : [...prev, id]
-    );
+  const savePaper = (paper: SearchResult) => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const current: SavedPaper[] = saved ? JSON.parse(saved) : [];
+    
+    if (!current.find(p => p.id === paper.id)) {
+      const newPaper: SavedPaper = {
+        ...paper,
+        savedAt: new Date().toISOString(),
+        notes: '',
+        tags: [],
+      };
+      current.push(newPaper);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+      setSavedIds([...savedIds, paper.id]);
+    }
   };
 
   const getSourceBadge = (source: string) => {
@@ -129,14 +150,16 @@ export default function Papers() {
               </div>
               
               <button
-                onClick={() => toggleFavorite(paper.id)}
+                onClick={() => savePaper(paper)}
+                disabled={savedIds.includes(paper.id)}
                 className={`p-2 rounded-lg transition-colors ${
-                  favorites.includes(paper.id) 
-                    ? 'text-red-500 bg-red-50' 
-                    : 'text-slate-400 hover:text-red-500 hover:bg-red-50'
+                  savedIds.includes(paper.id) 
+                    ? 'text-green-500 bg-green-50 cursor-default' 
+                    : 'text-slate-400 hover:text-green-500 hover:bg-green-50'
                 }`}
+                title="保存到我的论文库"
               >
-                ♥
+                {savedIds.includes(paper.id) ? '✓' : '+'}
               </button>
             </div>
           </div>
@@ -147,7 +170,7 @@ export default function Papers() {
       {results.length > 0 && (
         <div className="text-sm text-slate-500 text-center">
           找到 {results.length} 篇论文
-          {favorites.length > 0 && ` · ${favorites.length} 篇收藏`}
+          {savedIds.length > 0 && ` · ${savedIds.length} 篇已保存`}
         </div>
       )}
     </div>
