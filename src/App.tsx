@@ -13,6 +13,7 @@ import Outline from './pages/Outline';
 import References from './pages/References';
 import Charts from './pages/Charts';
 import Submissions from './pages/Submissions';
+import WritingProgress from './pages/WritingProgress';
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="/references" element={<Layout><References /></Layout>} />
         <Route path="/charts" element={<Layout><Charts /></Layout>} />
         <Route path="/submissions" element={<Layout><Submissions /></Layout>} />
+        <Route path="/writing" element={<Layout><WritingProgress /></Layout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
