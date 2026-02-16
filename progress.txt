@@ -12,3 +12,11 @@
   - 登录后自动跳转到首页
   - 未登录用户会被重定向到登录页
 ---
+## 2026-02-16 12:35 - US-002
+- 实现了研究领域选择功能，包含6个预设领域和推荐会议
+- Files changed:
+  - src/pages/ResearchFields.tsx
+  - src/App.tsx
+- **Learnings for future iterations:**
+  - 使用数组存储多个研究领域
+  - 根据领域动态显示推荐会议

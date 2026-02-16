@@ -28,8 +28,8 @@
         "领域选择可随时修改"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成研究领域选择，包含6个预设领域、推荐会议、自定义领域功能"
     },
     {
       "id": "US-003",
