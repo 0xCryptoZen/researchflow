@@ -1,120 +1,169 @@
-import { useState } from 'react';
-import type { Task, Conference } from '../types';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
-  const [tasks] = useState<Task[]>([
-    { id: '1', title: 'Read paper: LTRAS', status: 'in-progress', priority: 'high', createdAt: '2026-02-15' },
-    { id: '2', title: 'Write literature review', status: 'todo', priority: 'medium', dueDate: '2026-02-20', createdAt: '2026-02-14' },
-    { id: '3', title: 'Submit to arXiv', status: 'todo', priority: 'low', createdAt: '2026-02-10' },
-  ]);
+  const [papers, setPapers] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [conferences, setConferences] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<any[]>([]);
 
-  const [conferences] = useState<Conference[]>([
-    { id: '1', name: 'Eurocrypt 2026', shortName: 'Eurocrypt', year: 2026, deadline: '2026-05-06', category: 'blockchain', website: '' },
-    { id: '2', name: 'IEEE Blockchain 2026', shortName: 'IEEE Blockchain', year: 2026, deadline: '2026-07-15', category: 'blockchain', website: '' },
-    { id: '3', name: 'ACM CCS 2026', shortName: 'CCS', year: 2026, deadline: '2026-05-01', category: 'security', website: '' },
-  ]);
+  useEffect(() => {
+    setPapers(JSON.parse(localStorage.getItem('papers') || '[]'));
+    setTasks(JSON.parse(localStorage.getItem('tasks') || '[]'));
+    setConferences(JSON.parse(localStorage.getItem('conferences') || '[]'));
+    setSubmissions(JSON.parse(localStorage.getItem('submissions') || '[]'));
+  }, []);
 
-  const getDaysUntil = (date: string) => {
-    const diff = new Date(date).getTime() - new Date().getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-100 text-red-700';
-      case 'medium': return 'bg-yellow-100 text-yellow-700';
-      case 'low': return 'bg-green-100 text-green-700';
-      default: return 'bg-slate-100 text-slate-700';
-    }
-  };
+  const upcomingTasks = tasks.filter(t => t.status !== 'completed').slice(0, 3);
+  const recentPapers = papers.slice(0, 3);
+  const urgentConferences = conferences.filter(c => {
+    const days = Math.ceil((new Date(c.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return days > 0 && days < 30;
+  }).slice(0, 3);
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div className="text-2xl font-bold text-slate-800">156</div>
-          <div className="text-sm text-slate-500">Papers Collected</div>
-        </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div className="text-2xl font-bold text-slate-800">{tasks.filter(t => t.status === 'todo').length}</div>
-          <div className="text-sm text-slate-500">Pending Tasks</div>
-        </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div className="text-2xl font-bold text-slate-800">{conferences.length}</div>
-          <div className="text-sm text-slate-500">Target Conferences</div>
-        </div>
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <div className="text-2xl font-bold text-slate-800">0</div>
-          <div className="text-sm text-slate-500">Papers Submitted</div>
-        </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">ResearchFlow 仪表盘</h1>
+
+      {/* 统计卡片 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <StatCard icon="📄" title="收藏论文" count={papers.length} link="/papers" color="blue" />
+        <StatCard icon="✅" title="待办任务" count={tasks.filter(t => t.status !== 'completed').length} link="/tasks" color="green" />
+        <StatCard icon="📅" title="目标会议" count={conferences.length} link="/conferences" color="purple" />
+        <StatCard icon="📤" title="投稿中" count={submissions.filter(s => s.status === 'submitted' || s.status === 'under_review').length} link="/submissions" color="orange" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Conference Countdown */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Conference Deadlines</h2>
-          <div className="space-y-3">
-            {conferences.map((conf) => {
-              const days = getDaysUntil(conf.deadline);
-              const isUrgent = days <= 30;
-              return (
-                <div key={conf.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
+        {/* 今日推荐 */}
+        <div className="bg-white rounded-lg border p-5">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">📄 今日推荐论文</h2>
+            <Link to="/papers/search" className="text-blue-600 text-sm">查看全部</Link>
+          </div>
+          {recentPapers.length > 0 ? (
+            <div className="space-y-3">
+              {recentPapers.map((paper: any) => (
+                <div key={paper.id} className="p-3 bg-gray-50 rounded-lg">
+                  <h3 className="font-medium text-gray-900 text-sm">{paper.title}</h3>
+                  <p className="text-gray-500 text-xs mt-1">{paper.authors}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">暂无推荐</p>
+          )}
+        </div>
+
+        {/* 待办任务 */}
+        <div className="bg-white rounded-lg border p-5">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">✅ 待办任务</h2>
+            <Link to="/tasks" className="text-blue-600 text-sm">查看全部</Link>
+          </div>
+          {upcomingTasks.length > 0 ? (
+            <div className="space-y-3">
+              {upcomingTasks.map((task: any) => (
+                <div key={task.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
                   <div>
-                    <div className="font-medium text-slate-800">{conf.shortName} {conf.year}</div>
-                    <div className="text-sm text-slate-500">{conf.deadline}</div>
+                    <h3 className="font-medium text-gray-900 text-sm">{task.title}</h3>
+                    <p className="text-gray-500 text-xs">{task.dueDate || '无截止日期'}</p>
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${isUrgent ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                    {days} days
-                  </div>
+                  <span className={`px-2 py-0.5 rounded text-xs ${
+                    task.priority === 'high' ? 'bg-red-100 text-red-800' :
+                    task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>{task.priority === 'high' ? '高' : task.priority === 'medium' ? '中' : '低'}</span>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">暂无待办</p>
+          )}
         </div>
 
-        {/* Tasks */}
-        <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Recent Tasks</h2>
-          <div className="space-y-3">
-            {tasks.map((task) => (
-              <div key={task.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                <input type="checkbox" className="w-5 h-5 rounded border-slate-300" />
-                <div className="flex-1">
-                  <div className="font-medium text-slate-800">{task.title}</div>
-                  {task.dueDate && <div className="text-sm text-slate-500">Due: {task.dueDate}</div>}
-                </div>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                  {task.priority}
-                </span>
-              </div>
-            ))}
+        {/* 会议截稿 */}
+        <div className="bg-white rounded-lg border p-5">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">📅 会议截稿</h2>
+            <Link to="/conferences" className="text-blue-600 text-sm">查看全部</Link>
           </div>
+          {urgentConferences.length > 0 ? (
+            <div className="space-y-3">
+              {urgentConferences.map((conf: any) => {
+                const days = Math.ceil((new Date(conf.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                return (
+                  <div key={conf.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
+                    <div>
+                      <h3 className="font-medium text-gray-900 text-sm">{conf.name}</h3>
+                      <p className="text-gray-500 text-xs">{conf.deadline}</p>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-xs ${days < 7 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                      {days} 天
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">暂无紧迫截稿</p>
+          )}
         </div>
-      </div>
 
-      {/* Recent Papers */}
-      <div className="bg-white rounded-xl p-5 border border-slate-200 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-800 mb-4">Recommended Papers Today</h2>
-        <div className="space-y-3">
-          <div className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
-            <div className="font-medium text-slate-800">LTRAS: A Linkable Threshold Ring Adaptor Signature Scheme for Efficient and Private Cross-Chain Transactions</div>
-            <div className="text-sm text-slate-500 mt-1">Yi Liang, Jinguang Han · arXiv · 2026-02-05</div>
-            <div className="flex gap-2 mt-2">
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">blockchain</span>
-              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">cryptography</span>
-            </div>
+        {/* 投稿进度 */}
+        <div className="bg-white rounded-lg border p-5">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-sem-semibold">📤 投稿进度</h2>
+            <Link to="/submissions" className="text-blue-600 text-sm">查看全部</Link>
           </div>
-          <div className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
-            <div className="font-medium text-slate-800">A Privacy Attack on Monero's Blockchain</div>
-            <div className="text-sm text-slate-500 mt-1">BaoJia Houchen, Yucomm Chen · arXiv · 2026-02-14</div>
-            <div className="flex gap-2 mt-2">
-              <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">privacy</span>
-              <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">monero</span>
+          {submissions.length > 0 ? (
+            <div className="space-y-3">
+              {submissions.slice(0, 3).map((sub: any) => (
+                <div key={sub.id} className="p-3 bg-gray-50 rounded-lg">
+                  <h3 className="font-medium text-gray-900 text-sm">{sub.paperTitle}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className={`px-2 py-0.5 rounded text-xs ${
+                      sub.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                      sub.status === 'rejected' ? 'bg-red-100 text-red-800' :
+                      sub.status === 'under_review' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {sub.status === 'draft' ? '草稿' :
+                       sub.status === 'submitted' ? '已投稿' :
+                       sub.status === 'under_review' ? '审稿中' :
+                       sub.status === 'accepted' ? '已接收' :
+                       sub.status === 'rejected' ? '被拒稿' : '已发表'}
+                    </span>
+                    <span className="text-gray-500 text-xs">{sub.venue}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <p className="text-gray-500 text-center py-4">暂无投稿</p>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function StatCard({ icon, title, count, link, color }: { icon: string; title: string; count: number; link: string; color: string }) {
+  const colors: Record<string, string> = {
+    blue: 'bg-blue-50 border-blue-200',
+    green: 'bg-green-50 border-green-200',
+    purple: 'bg-purple-50 border-purple-200',
+    orange: 'bg-orange-50 border-orange-200',
+  };
+  
+  return (
+    <Link to={link} className={`block p-5 rounded-lg border ${colors[color]} hover:shadow-md transition-shadow`}>
+      <div className="flex items-center gap-3">
+        <span className="text-2xl">{icon}</span>
+        <div>
+          <p className="text-2xl font-bold text-gray-900">{count}</p>
+          <p className="text-sm text-gray-600">{title}</p>
+        </div>
+      </div>
+    </Link>
   );
 }
