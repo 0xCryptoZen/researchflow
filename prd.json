@@ -58,8 +58,8 @@
         "论文搜索和过滤"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成论文收藏与管理，包含收藏、笔记、标签功能"
     },
     {
       "id": "US-005",
