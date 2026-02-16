@@ -10,6 +10,7 @@ import Tasks from './pages/Tasks';
 import Reminders from './pages/Reminders';
 import Templates from './pages/Templates';
 import Outline from './pages/Outline';
+import References from './pages/References';
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/reminders" element={<Layout><Reminders /></Layout>} />
         <Route path="/templates" element={<Layout><Templates /></Layout>} />
         <Route path="/outline" element={<Layout><Outline /></Layout>} />
+        <Route path="/references" element={<Layout><References /></Layout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

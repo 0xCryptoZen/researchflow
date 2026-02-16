@@ -159,8 +159,8 @@
         "导出 BibTeX/EndNote 格式"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成参考文献管理，包含 BibTeX 导入导出、搜索筛选、标签管理功能"
     },
     {
       "id": "US-012",

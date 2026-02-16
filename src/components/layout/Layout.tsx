@@ -14,6 +14,7 @@ const navItems = [
   { path: '/conferences', label: 'Conferences', icon: '📅' },
   { path: '/reminders', label: 'Reminders', icon: '🔔' },
   { path: '/outline', label: 'Outline', icon: '📋' },
+  { path: '/references', label: 'References', icon: '📚' },
   { path: '/templates', label: 'Templates', icon: '📝' },
 ];
 
