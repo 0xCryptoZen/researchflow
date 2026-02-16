@@ -16,6 +16,7 @@ const navItems = [
   { path: '/outline', label: 'Outline', icon: '📋' },
   { path: '/references', label: 'References', icon: '📚' },
   { path: '/charts', label: 'Charts', icon: '📊' },
+  { path: '/submissions', label: 'Submissions', icon: '📤' },
   { path: '/templates', label: 'Templates', icon: '📝' },
 ];
 
