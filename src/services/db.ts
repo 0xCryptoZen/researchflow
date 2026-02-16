@@ -2,8 +2,10 @@
  * Database Service - 数据持久化服务
  * 支持 localStorage 和模拟 Cloudflare D1 接口
  */
+import { STORAGE_KEYS } from '../constants/storage';
+import { readRaw, writeRaw } from './storage';
 
-const STORAGE_KEY = 'researchflow_db';
+const STORAGE_KEY = STORAGE_KEYS.DB;
 
 // 数据表
 interface Tables {
@@ -44,7 +46,7 @@ class Database {
   // 加载数据
   private load(): Tables {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = readRaw(STORAGE_KEY);
       if (saved) {
         return { ...defaultData, ...JSON.parse(saved) };
       }
@@ -57,7 +59,7 @@ class Database {
   // 保存数据
   private save(): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      writeRaw(STORAGE_KEY, JSON.stringify(this.data));
     } catch (e) {
       console.error('Failed to save data:', e);
     }

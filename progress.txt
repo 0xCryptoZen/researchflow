@@ -28,3 +28,85 @@
 - **Learnings for future iterations:**
   - ArXiv API 返回 XML 格式，需要解析
   - DBLP API 返回 JSON 格式
+---
+## 2026-02-16 22:40 - PRD & 系统流程优化
+- 重构 PRD，修复重复/冲突的用户故事状态，按代码现状重新标注 completed/partial/not_started
+- 新增系统流程文档，明确 As-Is/To-Be 流程、数据流问题与 P0/P1/P2 优先级
+- 将 README 从模板说明改为项目实际说明与能力边界
+- Files changed:
+  - prd.json
+  - docs/system-flow.md
+  - README.md
+- **Learnings for future iterations:**
+  - PRD 需要和代码实现保持同一口径，避免“已完成”与实际不一致
+  - 先做流程与数据边界澄清，再做代码重构，效率更高
+---
+## 2026-02-16 22:55 - P0-1 统一存储 key + 旧数据迁移
+- 统一全项目存储 key 为 `researchflow_*`，并修复 Dashboard 与模块 key 不一致问题
+- 新增迁移逻辑，自动兼容旧 key（如 user/papers/tasks 等）
+- Files changed:
+  - src/constants/storage.ts
+  - src/main.tsx
+  - src/pages/Dashboard.tsx
+  - src/pages/Login.tsx
+  - src/pages/Papers.tsx
+  - src/pages/MyPapers.tsx
+  - src/pages/Tasks.tsx
+  - src/pages/Conferences.tsx
+  - src/pages/Reminders.tsx
+  - src/pages/References.tsx
+  - src/pages/Outline.tsx
+  - src/pages/Charts.tsx
+  - src/pages/Submissions.tsx
+  - src/pages/WritingProgress.tsx
+  - src/services/auth.ts
+  - src/services/db.ts
+  - src/hooks/useUserSync.ts
+- **Learnings for future iterations:**
+  - key 统一是多模块联动的前置条件
+  - 迁移逻辑应在入口执行，避免用户已有数据丢失
+---
+## 2026-02-16 23:05 - P0-2 收敛存储访问层
+- 新增统一存储服务，提供 `readJSON/writeJSON/removeKey` 与变更事件
+- 页面与服务由直接 localStorage 调用迁移到存储服务
+- Dashboard 增加 `researchflow:storage-updated` 监听，实现跨模块即时刷新
+- Files changed:
+  - src/services/storage.ts
+  - src/pages/Dashboard.tsx
+  - src/services/auth.ts
+  - src/services/db.ts
+  - src/hooks/useUserSync.ts
+  - src/pages/Login.tsx
+  - src/pages/Papers.tsx
+  - src/pages/MyPapers.tsx
+  - src/pages/Tasks.tsx
+  - src/pages/Conferences.tsx
+  - src/pages/Reminders.tsx
+  - src/pages/References.tsx
+  - src/pages/Outline.tsx
+  - src/pages/Charts.tsx
+  - src/pages/Submissions.tsx
+  - src/pages/WritingProgress.tsx
+- **Learnings for future iterations:**
+  - 存储事件机制能显著改善模块间数据一致性
+  - 先统一 API 再做仓储抽象，可减少重构风险
+---
+## 2026-02-16 23:13 - P0-3 核心模块仓储化
+- 新增 repository 层并落地 4 个核心域：论文、任务、会议、投稿
+- 相关页面改为通过仓储读写，减少页面重复 CRUD 代码
+- Dashboard 改为通过仓储聚合核心数据
+- Files changed:
+  - src/repositories/localRepository.ts
+  - src/repositories/papersRepository.ts
+  - src/repositories/tasksRepository.ts
+  - src/repositories/conferencesRepository.ts
+  - src/repositories/submissionsRepository.ts
+  - src/pages/Papers.tsx
+  - src/pages/MyPapers.tsx
+  - src/pages/Tasks.tsx
+  - src/pages/Conferences.tsx
+  - src/pages/Submissions.tsx
+  - src/pages/Dashboard.tsx
+- **Learnings for future iterations:**
+  - 通过 repository 层可把未来云同步改造集中到数据层
+  - 优先仓储化高频核心模块，可最快降低维护复杂度

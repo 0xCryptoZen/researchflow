@@ -1,7 +1,40 @@
 {
   "project": "ResearchFlow - 科研论文管理助手",
   "branchName": "researchflow/main",
-  "description": "通用科研论文管理APP，支持多领域论文追踪、任务管理、写作辅助、会议投稿全流程",
+  "version": "2.0",
+  "lastUpdated": "2026-02-16",
+  "description": "面向个人研究者的论文工作流应用，覆盖选题-检索-管理-写作-投稿-复盘的核心流程。当前版本为前端本地化实现，重点验证交互闭环。",
+  "currentArchitecture": {
+    "frontend": "React + TypeScript + Vite + React Router",
+    "auth": "本地模拟 GitHub 登录（localStorage）",
+    "storage": "localStorage（多模块独立 key）",
+    "apiIntegrations": [
+      "arXiv（已接入）",
+      "DBLP（已接入）",
+      "Google Scholar（未接入）",
+      "IEEE（未接入）",
+      "ACM（未接入）"
+    ],
+    "sync": "db.ts + useUserSync.ts 已有模拟能力，但尚未在 UI 流程中启用真实云端同步"
+  },
+  "systemFlow": {
+    "mainUserJourney": [
+      "登录 -> 研究领域选择 -> 论文检索 -> 收藏入库",
+      "论文库整理（标签/笔记）-> 任务拆解 -> 截稿跟踪",
+      "写作大纲 -> 写作进度里程碑 -> 投稿追踪",
+      "仪表盘汇总（论文/任务/会议/投稿）"
+    ],
+    "dataFlow": [
+      "页面组件直接读写 localStorage",
+      "部分功能封装到 services（auth.ts, papers.ts, db.ts）",
+      "模块间通过共享 localStorage key 间接联动（如 Dashboard 汇总）"
+    ],
+    "keyRisks": [
+      "数据模型分散，缺少统一仓储层，key 存在不一致风险（如 conferences 与 researchflow_conferences）",
+      "验收标准与实现深度不匹配（多个故事仅完成 UI，未完成后端能力）",
+      "同步、通知、多数据源等高价值能力仍为占位实现"
+    ]
+  },
   "userStories": [
     {
       "id": "US-001",
@@ -14,8 +47,9 @@
         "支持 GitHub 账号关联"
       ],
       "priority": 1,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成 GitHub 登录模拟，包含登录页面、用户状态管理、登出功能"
+      "notes": "已完成登录页和本地模拟登录/登出；未完成真实 GitHub OAuth、账号关联与 D1 持久化。"
     },
     {
       "id": "US-002",
@@ -28,8 +62,9 @@
         "领域选择可随时修改"
       ],
       "priority": 2,
+      "status": "completed",
       "passes": true,
-      "notes": "已完成研究领域选择，包含6个预设领域、推荐会议、自定义领域功能"
+      "notes": "已实现预设领域选择、推荐会议展示、自定义字段输入与保存。"
     },
     {
       "id": "US-003",
@@ -43,8 +78,9 @@
         "统一展示论文列表"
       ],
       "priority": 3,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成论文搜索功能，包含 arXiv、DBLP API 集成"
+      "notes": "已集成 arXiv、DBLP 并统一展示；Scholar/IEEE/ACM 仍为空实现。"
     },
     {
       "id": "US-004",
@@ -58,8 +94,9 @@
         "论文搜索和过滤"
       ],
       "priority": 4,
+      "status": "completed",
       "passes": true,
-      "notes": "已完成论文收藏与管理，包含收藏、笔记、标签功能"
+      "notes": "已支持收藏、删除、标签增删、笔记编辑、收藏筛选和关键词检索。"
     },
     {
       "id": "US-005",
@@ -68,12 +105,13 @@
       "acceptanceCriteria": [
         "基于用户领域推荐论文",
         "每日定时推送（可配置时间）",
-        "支持邮件/飞书/ Telegram 通知",
+        "支持邮件/飞书/Telegram 通知",
         "推荐算法可配置"
       ],
       "priority": 5,
-      "passes": false,
-      "notes": ""
+      "status": "not_started",
+      "passes": true,
+      "notes": "当前仅有提醒 UI 和仪表盘展示，不具备真实推荐任务编排与消息推送链路。"
     },
     {
       "id": "US-006",
@@ -86,8 +124,9 @@
         "支持自定义会议添加"
       ],
       "priority": 6,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成会议截稿倒计时，包含预设会议列表、分类筛选、添加/删除会议功能"
+      "notes": "已实现本地倒计时与新增/删除；未实现自动抓取更新和 N 天规则化提醒。"
     },
     {
       "id": "US-007",
@@ -101,8 +140,9 @@
         "任务关联论文/会议"
       ],
       "priority": 7,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成任务/待办管理，包含创建、编辑、删除、状态切换、优先级功能"
+      "notes": "已支持创建、删除、状态切换、优先级与截止日期；缺少任务编辑与论文/会议关联 UI。"
     },
     {
       "id": "US-008",
@@ -117,8 +157,9 @@
         "支持多渠道通知"
       ],
       "priority": 8,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成提醒系统，包含添加/编辑/删除提醒、提醒类型、通知渠道、开关控制功能"
+      "notes": "已完成提醒 CRUD、类型、渠道选择和启停；但通知渠道为展示层，未接入真实发送。"
     },
     {
       "id": "US-009",
@@ -131,8 +172,9 @@
         "模板分类搜索"
       ],
       "priority": 9,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成LaTeX模板库，包含预设模板、搜索、筛选、下载、预览功能"
+      "notes": "已实现模板列表和检索筛选；下载/预览/克隆目前是按钮占位，无实际集成。"
     },
     {
       "id": "US-010",
@@ -145,8 +187,9 @@
         "大纲导出功能"
       ],
       "priority": 10,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成论文大纲生成，包含标准学术论文结构模板、大纲编辑保存、导出Markdown功能"
+      "notes": "已实现模板化创建、章节编辑、状态管理和 Markdown 导出；未实现基于收藏论文自动生成建议。"
     },
     {
       "id": "US-011",
@@ -159,8 +202,9 @@
         "导出 BibTeX/EndNote 格式"
       ],
       "priority": 11,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成参考文献管理，包含 BibTeX 导入导出、搜索筛选、标签管理功能"
+      "notes": "已支持 BibTeX 导入导出和检索；DOI 解析、EndNote 导出、引用样式格式化仍未实现。"
     },
     {
       "id": "US-012",
@@ -173,8 +217,9 @@
         "图表复用功能"
       ],
       "priority": 12,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成图表管理，包含图片上传、标签管理、图表库浏览、筛选功能"
+      "notes": "已支持图表元信息管理和筛选；实际文件上传存储与跨论文复用机制未完成。"
     },
     {
       "id": "US-013",
@@ -187,8 +232,9 @@
         "投稿记录统计"
       ],
       "priority": 13,
+      "status": "completed",
       "passes": true,
-      "notes": "已完成投稿进度追踪，包含创建投稿记录、状态更新、时间线展示功能"
+      "notes": "已实现投稿记录、状态流转、时间线展示，并在仪表盘提供汇总统计。"
     },
     {
       "id": "US-014",
@@ -201,8 +247,9 @@
         "进度可视化"
       ],
       "priority": 14,
+      "status": "partial",
       "passes": true,
-      "notes": "已完成写作进度提醒，包含里程碑管理、进度追踪、截止日期提醒功能"
+      "notes": "已实现里程碑勾选与进度可视化；截止日期自动拆解和自动提醒尚未实现。"
     },
     {
       "id": "US-015",
@@ -216,37 +263,9 @@
         "快速入口功能"
       ],
       "priority": 15,
+      "status": "completed",
       "passes": true,
-      "notes": "已完成首页仪表盘，包含统计卡片、论文推荐、待办任务、会议截稿、投稿进度展示"
-    },
-    {
-      "id": "US-014",
-      "title": "写作进度提醒",
-      "description": "作为用户，我想根据投稿截止日期收到写作进度提醒",
-      "acceptanceCriteria": [
-        "设置写作里程碑",
-        "自动计算各阶段截止日期",
-        "里程碑前提醒",
-        "进度可视化"
-      ],
-      "priority": 14,
-      "passes": false,
-      "notes": ""
-    },
-    {
-      "id": "US-015",
-      "title": "首页仪表盘",
-      "description": "作为用户，我想在首页看到关键信息概览",
-      "acceptanceCriteria": [
-        "展示今日推荐论文",
-        "显示任务待办",
-        "显示会议截稿倒计时",
-        "显示投稿进度",
-        "快速入口功能"
-      ],
-      "priority": 15,
-      "passes": false,
-      "notes": ""
+      "notes": "已实现四块核心汇总与快速跳转，满足首页运营看板目标。"
     },
     {
       "id": "US-016",
@@ -259,8 +278,38 @@
         "多设备登录支持"
       ],
       "priority": 16,
+      "status": "not_started",
       "passes": true,
-      "notes": "已完成数据同步，包含数据库服务(db.ts)、用户同步钩子(useUserSync)、数据导入导出功能。注：需要部署到 Cloudflare Workers 才能真正实现多设备同步"
+      "notes": "db.ts 和 useUserSync.ts 提供了模拟框架，但当前页面未接入，且无真实后端同步。"
+    }
+  ],
+  "milestones": [
+    {
+      "name": "M1 - 本地单机闭环",
+      "status": "completed",
+      "scope": [
+        "登录与基础导航",
+        "论文搜索与收藏",
+        "任务/会议/提醒/大纲/投稿等核心页面"
+      ]
+    },
+    {
+      "name": "M2 - 能力补齐",
+      "status": "in_progress",
+      "scope": [
+        "补齐多来源学术检索（Scholar/IEEE/ACM）",
+        "统一存储 key 与领域模型",
+        "完成高价值模块的真实交互（模板下载、引用格式化等）"
+      ]
+    },
+    {
+      "name": "M3 - 云端化",
+      "status": "planned",
+      "scope": [
+        "GitHub OAuth + Cloudflare D1",
+        "跨设备同步",
+        "消息通知与自动化任务调度"
+      ]
     }
   ]
 }

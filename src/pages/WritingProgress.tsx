@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { STORAGE_KEYS } from '../constants/storage';
+import { readJSON, writeJSON } from '../services/storage';
 
 interface Milestone {
   id: string;
@@ -30,13 +32,12 @@ const defaultProgress: WritingProgress[] = [
 
 export default function WritingProgress() {
   const [progress, setProgress] = useState<WritingProgress[]>(() => {
-    const saved = localStorage.getItem('writingProgress');
-    return saved ? JSON.parse(saved) : defaultProgress;
+    return readJSON<WritingProgress[]>(STORAGE_KEYS.WRITING_PROGRESS, defaultProgress);
   });
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('writingProgress', JSON.stringify(progress));
+    writeJSON(STORAGE_KEYS.WRITING_PROGRESS, progress);
   }, [progress]);
 
   const toggleMilestone = (paperId: string, milestoneId: string) => {

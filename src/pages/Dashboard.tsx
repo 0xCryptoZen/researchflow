@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { papersRepository } from '../repositories/papersRepository';
+import { tasksRepository } from '../repositories/tasksRepository';
+import { conferencesRepository } from '../repositories/conferencesRepository';
+import { submissionsRepository } from '../repositories/submissionsRepository';
+import { STORAGE_UPDATED_EVENT } from '../services/storage';
 
 export default function Dashboard() {
   const [papers, setPapers] = useState<any[]>([]);
@@ -7,12 +12,27 @@ export default function Dashboard() {
   const [conferences, setConferences] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
 
-  useEffect(() => {
-    setPapers(JSON.parse(localStorage.getItem('papers') || '[]'));
-    setTasks(JSON.parse(localStorage.getItem('tasks') || '[]'));
-    setConferences(JSON.parse(localStorage.getItem('conferences') || '[]'));
-    setSubmissions(JSON.parse(localStorage.getItem('submissions') || '[]'));
+  const loadDashboardData = useCallback(() => {
+    setPapers(papersRepository.getAll());
+    setTasks(tasksRepository.getAll());
+    setConferences(conferencesRepository.getAll());
+    setSubmissions(submissionsRepository.getAll());
   }, []);
+
+  useEffect(() => {
+    loadDashboardData();
+
+    const handleStorageUpdated = () => loadDashboardData();
+    const handleFocus = () => loadDashboardData();
+
+    window.addEventListener(STORAGE_UPDATED_EVENT, handleStorageUpdated);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener(STORAGE_UPDATED_EVENT, handleStorageUpdated);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [loadDashboardData]);
 
   const upcomingTasks = tasks.filter(t => t.status !== 'completed').slice(0, 3);
   const recentPapers = papers.slice(0, 3);

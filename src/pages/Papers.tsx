@@ -1,24 +1,13 @@
 import { useState } from 'react';
 import { searchAll, type SearchResult } from '../services/papers';
-
-const STORAGE_KEY = 'researchflow_papers';
-
-interface SavedPaper extends SearchResult {
-  savedAt: string;
-  notes: string;
-  tags: string[];
-  isFavorite?: boolean;
-}
+import { papersRepository } from '../repositories/papersRepository';
 
 export default function Papers() {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedSource, setSelectedSource] = useState<string>('all');
-  const [savedIds, setSavedIds] = useState<string[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    return saved ? JSON.parse(saved).map((p: SavedPaper) => p.id) : [];
-  });
+  const [savedIds, setSavedIds] = useState<string[]>(() => papersRepository.getSavedIds());
 
   const handleSearch = async () => {
     if (!query.trim()) return;
@@ -38,20 +27,10 @@ export default function Papers() {
   };
 
   const savePaper = (paper: SearchResult) => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const current: SavedPaper[] = saved ? JSON.parse(saved) : [];
-    
-    if (!current.find(p => p.id === paper.id)) {
-      const newPaper: SavedPaper = {
-        ...paper,
-        savedAt: new Date().toISOString(),
-        notes: '',
-        tags: [],
-      };
-      current.push(newPaper);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+    const isSaved = papersRepository.addFromSearchResult(paper);
+    if (isSaved) {
       setSavedIds([...savedIds, paper.id]);
-    }
+    } 
   };
 
   const getSourceBadge = (source: string) => {

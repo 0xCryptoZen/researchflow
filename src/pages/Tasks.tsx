@@ -1,19 +1,5 @@
 import { useState, useEffect } from 'react';
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  status: 'todo' | 'in-progress' | 'completed';
-  priority: 'high' | 'medium' | 'low';
-  dueDate?: string;
-  paperId?: string;
-  conferenceId?: string;
-  createdAt: string;
-  completedAt?: string;
-}
-
-const STORAGE_KEY = 'researchflow_tasks';
+import { type Task, tasksRepository } from '../repositories/tasksRepository';
 
 export default function Tasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -22,50 +8,25 @@ export default function Tasks() {
   const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'medium' as 'medium' | 'high' | 'low', dueDate: '' });
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      setTasks(JSON.parse(saved));
-    }
+    setTasks(tasksRepository.getAll());
   }, []);
-
-  const saveTasks = (newTasks: Task[]) => {
-    setTasks(newTasks);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newTasks));
-  };
 
   const addTask = () => {
     if (!newTask.title.trim()) return;
-    
-    const task: Task = {
-      id: Date.now().toString(),
-      title: newTask.title,
-      description: newTask.description,
-      status: 'todo',
-      priority: newTask.priority,
-      dueDate: newTask.dueDate || undefined,
-      createdAt: new Date().toISOString(),
-    };
-    
-    saveTasks([...tasks, task]);
+    tasksRepository.add(newTask);
+    setTasks(tasksRepository.getAll());
     setShowAddForm(false);
     setNewTask({ title: '', description: '', priority: 'medium', dueDate: '' });
   };
 
   const updateStatus = (id: string, status: Task['status']) => {
-    saveTasks(tasks.map(t => {
-      if (t.id === id) {
-        return {
-          ...t,
-          status,
-          completedAt: status === 'completed' ? new Date().toISOString() : undefined
-        };
-      }
-      return t;
-    }));
+    tasksRepository.updateStatus(id, status);
+    setTasks(tasksRepository.getAll());
   };
 
   const deleteTask = (id: string) => {
-    saveTasks(tasks.filter(t => t.id !== id));
+    tasksRepository.deleteById(id);
+    setTasks(tasksRepository.getAll());
   };
 
   const getPriorityColor = (priority: string) => {

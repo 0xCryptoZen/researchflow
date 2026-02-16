@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { STORAGE_KEYS } from '../constants/storage';
+import { readJSON, writeJSON } from '../services/storage';
 
 interface Chart {
   id: string;
@@ -37,15 +39,14 @@ const defaultCharts: Chart[] = [
 
 export default function Charts() {
   const [charts, setCharts] = useState<Chart[]>(() => {
-    const saved = localStorage.getItem('charts');
-    return saved ? JSON.parse(saved) : defaultCharts;
+    return readJSON<Chart[]>(STORAGE_KEYS.CHARTS, defaultCharts);
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('charts', JSON.stringify(charts));
+    writeJSON(STORAGE_KEYS.CHARTS, charts);
   }, [charts]);
 
   const filteredCharts = charts.filter(chart => {

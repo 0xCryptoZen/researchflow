@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { STORAGE_KEYS } from '../constants/storage';
+import { readJSON, writeJSON } from '../services/storage';
 
 interface Reminder {
   id: string;
@@ -46,14 +48,13 @@ const defaultReminders: Reminder[] = [
 
 export default function Reminders() {
   const [reminders, setReminders] = useState<Reminder[]>(() => {
-    const saved = localStorage.getItem('reminders');
-    return saved ? JSON.parse(saved) : defaultReminders;
+    return readJSON<Reminder[]>(STORAGE_KEYS.REMINDERS, defaultReminders);
   });
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('reminders', JSON.stringify(reminders));
+    writeJSON(STORAGE_KEYS.REMINDERS, reminders);
   }, [reminders]);
 
   const getTypeIcon = (type: Reminder['type']) => {

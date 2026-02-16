@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { STORAGE_KEYS } from '../constants/storage';
+import { readJSON, writeJSON } from '../services/storage';
 
 interface Reference {
   id: string;
@@ -48,15 +50,14 @@ const defaultReferences: Reference[] = [
 
 export default function References() {
   const [references, setReferences] = useState<Reference[]>(() => {
-    const saved = localStorage.getItem('references');
-    return saved ? JSON.parse(saved) : defaultReferences;
+    return readJSON<Reference[]>(STORAGE_KEYS.REFERENCES, defaultReferences);
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [showImportModal, setShowImportModal] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('references', JSON.stringify(references));
+    writeJSON(STORAGE_KEYS.REFERENCES, references);
   }, [references]);
 
   const filteredRefs = references.filter(ref => {

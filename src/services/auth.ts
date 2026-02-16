@@ -1,5 +1,7 @@
 // Auth Service - GitHub OAuth simulation
 // In production, this would integrate with Cloudflare Workers backend
+import { STORAGE_KEYS } from '../constants/storage';
+import { readJSON, removeKey, writeJSON } from './storage';
 
 export interface GitHubUser {
   id: string;
@@ -22,8 +24,7 @@ export interface AuthUser {
 export const auth = {
   // Get current user from localStorage
   getCurrentUser(): AuthUser | null {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
+    return readJSON<AuthUser | null>(STORAGE_KEYS.USER, null);
   },
 
   // Check if user is logged in
@@ -48,13 +49,13 @@ export const auth = {
       targetConferences: ['Eurocrypt 2026', 'CCS 2026']
     };
     
-    localStorage.setItem('user', JSON.stringify(mockUser));
+    writeJSON(STORAGE_KEYS.USER, mockUser);
     return mockUser;
   },
 
   // Logout
   logout(): void {
-    localStorage.removeItem('user');
+    removeKey(STORAGE_KEYS.USER);
   },
 
   // Update user profile
@@ -63,7 +64,7 @@ export const auth = {
     if (!user) throw new Error('Not logged in');
     
     const updatedUser = { ...user, ...updates };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    writeJSON(STORAGE_KEYS.USER, updatedUser);
     return updatedUser;
   },
 
@@ -74,7 +75,7 @@ export const auth = {
     
     if (!user.researchFields.includes(field)) {
       user.researchFields.push(field);
-      localStorage.setItem('user', JSON.stringify(user));
+      writeJSON(STORAGE_KEYS.USER, user);
     }
     return user;
   },
@@ -86,7 +87,7 @@ export const auth = {
     
     if (!user.targetConferences.includes(conf)) {
       user.targetConferences.push(conf);
-      localStorage.setItem('user', JSON.stringify(user));
+      writeJSON(STORAGE_KEYS.USER, user);
     }
     return user;
   }

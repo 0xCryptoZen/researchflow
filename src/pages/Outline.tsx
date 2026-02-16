@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { STORAGE_KEYS } from '../constants/storage';
+import { readJSON, writeJSON } from '../services/storage';
 
 interface OutlineSection {
   id: string;
@@ -55,8 +57,7 @@ const templateStructures = {
 
 export default function Outline() {
   const [outlines, setOutlines] = useState<Outline[]>(() => {
-    const saved = localStorage.getItem('outlines');
-    return saved ? JSON.parse(saved) : defaultOutlines;
+    return readJSON<Outline[]>(STORAGE_KEYS.OUTLINES, defaultOutlines);
   });
   const [selectedOutline, setSelectedOutline] = useState<Outline | null>(null);
   const [showNewModal, setShowNewModal] = useState(false);
@@ -64,7 +65,7 @@ export default function Outline() {
   const [selectedTemplate, setSelectedTemplate] = useState<string>('standard');
 
   useEffect(() => {
-    localStorage.setItem('outlines', JSON.stringify(outlines));
+    writeJSON(STORAGE_KEYS.OUTLINES, outlines);
   }, [outlines]);
 
   const createOutline = (title: string, conference: string, templateKey: string) => {

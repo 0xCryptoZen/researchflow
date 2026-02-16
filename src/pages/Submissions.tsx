@@ -1,84 +1,31 @@
-import { useState, useEffect } from 'react';
-
-interface Submission {
-  id: string;
-  paperTitle: string;
-  venue: string;
-  venueType: 'conference' | 'journal';
-  status: 'draft' | 'submitted' | 'under_review' | 'accepted' | 'rejected' | 'published';
-  submittedDate?: string;
-  updatedDate?: string;
-  notes?: string;
-  timeline: { date: string; status: string; note?: string }[];
-}
-
-const defaultSubmissions: Submission[] = [
-  {
-    id: '1',
-    paperTitle: 'A Novel Approach to Blockchain Security',
-    venue: 'IEEE S&P 2026',
-    venueType: 'conference',
-    status: 'under_review',
-    submittedDate: '2026-01-15',
-    updatedDate: '2026-02-01',
-    notes: 'First round review',
-    timeline: [
-      { date: '2026-01-15', status: 'submitted', note: 'Paper submitted' },
-      { date: '2026-02-01', status: 'under_review', note: 'Under review' },
-    ],
-  },
-  {
-    id: '2',
-    paperTitle: 'Distributed Systems Survey',
-    venue: 'ACM TOCS',
-    venueType: 'journal',
-    status: 'draft',
-    timeline: [],
-  },
-];
+import { useState } from 'react';
+import { type Submission, submissionsRepository } from '../repositories/submissionsRepository';
 
 export default function Submissions() {
   const [submissions, setSubmissions] = useState<Submission[]>(() => {
-    const saved = localStorage.getItem('submissions');
-    return saved ? JSON.parse(saved) : defaultSubmissions;
+    return submissionsRepository.getAll();
   });
   const [showAddModal, setShowAddModal] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
-
-  useEffect(() => {
-    localStorage.setItem('submissions', JSON.stringify(submissions));
-  }, [submissions]);
 
   const filteredSubmissions = submissions.filter(
     sub => filterStatus === 'all' || sub.status === filterStatus
   );
 
   const addSubmission = (submission: Omit<Submission, 'id' | 'timeline'>) => {
-    const newSub: Submission = {
-      ...submission,
-      id: Date.now().toString(),
-      timeline: [{ date: new Date().toISOString().split('T')[0], status: 'draft', note: 'Created' }],
-    };
-    setSubmissions([...submissions, newSub]);
+    submissionsRepository.add(submission);
+    setSubmissions(submissionsRepository.getAll());
     setShowAddModal(false);
   };
 
   const updateStatus = (id: string, status: Submission['status']) => {
-    setSubmissions(submissions.map(sub => {
-      if (sub.id === id) {
-        const timeline = [...sub.timeline, { 
-          date: new Date().toISOString().split('T')[0], 
-          status,
-          note: `Status changed to ${status}`
-        }];
-        return { ...sub, status, updatedDate: new Date().toISOString().split('T')[0], timeline };
-      }
-      return sub;
-    }));
+    submissionsRepository.updateStatus(id, status);
+    setSubmissions(submissionsRepository.getAll());
   };
 
   const deleteSubmission = (id: string) => {
-    setSubmissions(submissions.filter(s => s.id !== id));
+    submissionsRepository.deleteById(id);
+    setSubmissions(submissionsRepository.getAll());
   };
 
   const getStatusLabel = (status: Submission['status']) => {

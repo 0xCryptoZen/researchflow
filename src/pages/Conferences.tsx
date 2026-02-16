@@ -1,30 +1,5 @@
 import { useState, useEffect } from 'react';
-
-interface Conference {
-  id: string;
-  name: string;
-  shortName: string;
-  year: number;
-  deadline: string;
-  notificationDate?: string;
-  conferenceDate?: string;
-  website: string;
-  category: string;
-}
-
-const defaultConferences: Conference[] = [
-  { id: '1', name: 'Eurocrypt 2026', shortName: 'Eurocrypt', year: 2026, deadline: '2026-05-06', category: 'blockchain', website: 'https://eurocrypt.iacr.org/2026/' },
-  { id: '2', name: 'IEEE Blockchain 2026', shortName: 'IEEE Blockchain', year: 2026, deadline: '2026-07-15', category: 'blockchain', website: 'https://ieee-blockchain.org/2026/' },
-  { id: '3', name: 'ACM CCS 2026', shortName: 'CCS', year: 2026, deadline: '2026-05-01', category: 'security', website: 'https://www.sigsac.org/ccs/CCS2026/' },
-  { id: '4', name: 'USENIX Security 2026', shortName: 'USENIX Security', year: 2026, deadline: '2026-05-07', category: 'security', website: 'https://www.usenix.org/security2026/' },
-  { id: '5', name: 'IEEE S&P 2026', shortName: 'IEEE S&P', year: 2026, deadline: '2026-08-15', category: 'security', website: 'https://sp2026.ieee-security.org/' },
-  { id: '6', name: 'NeurIPS 2026', shortName: 'NeurIPS', year: 2026, deadline: '2026-05-19', category: 'ai', website: 'https://neurips.cc/' },
-  { id: '7', name: 'ICML 2026', shortName: 'ICML', year: 2026, deadline: '2026-01-27', category: 'ai', website: 'https://icml.cc/2026/' },
-  { id: '8', name: 'SIGCOMM 2026', shortName: 'SIGCOMM', year: 2026, deadline: '2026-02-03', category: 'network', website: 'https://sigcomm.org/' },
-  { id: '9', name: 'AFT 2026', shortName: 'AFT', year: 2026, deadline: '2026-02-15', category: 'blockchain', website: 'https://aft.math Satoshi/' },
-];
-
-const STORAGE_KEY = 'researchflow_conferences';
+import { conferencesRepository, type Conference } from '../repositories/conferencesRepository';
 
 export default function Conferences() {
   const [conferences, setConferences] = useState<Conference[]>([]);
@@ -33,13 +8,7 @@ export default function Conferences() {
   const [newConf, setNewConf] = useState({ name: '', shortName: '', deadline: '', category: 'other' });
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      setConferences(JSON.parse(saved));
-    } else {
-      setConferences(defaultConferences);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultConferences));
-    }
+    setConferences(conferencesRepository.getAll());
   }, []);
 
   const getDaysUntil = (date: string) => {
@@ -68,23 +37,15 @@ export default function Conferences() {
 
   const addConference = () => {
     if (!newConf.name || !newConf.deadline) return;
-    const conf: Conference = {
-      id: Date.now().toString(),
-      ...newConf,
-      year: new Date(newConf.deadline).getFullYear(),
-      website: '',
-    };
-    const updated = [...conferences, conf];
-    setConferences(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    conferencesRepository.add(newConf);
+    setConferences(conferencesRepository.getAll());
     setShowAddForm(false);
     setNewConf({ name: '', shortName: '', deadline: '', category: 'other' });
   };
 
   const deleteConference = (id: string) => {
-    const updated = conferences.filter(c => c.id !== id);
-    setConferences(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    conferencesRepository.deleteById(id);
+    setConferences(conferencesRepository.getAll());
   };
 
   const categories = ['all', 'blockchain', 'security', 'ai', 'network', 'other'];

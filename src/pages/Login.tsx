@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { STORAGE_KEYS } from '../constants/storage';
+import { writeJSON } from '../services/storage';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -10,14 +12,14 @@ export default function Login() {
     // Simulate GitHub OAuth - in production, redirect to GitHub OAuth
     setTimeout(() => {
       // Store mock user data
-      localStorage.setItem('user', JSON.stringify({
+      writeJSON(STORAGE_KEYS.USER, {
         id: '1',
         githubId: '0xCryptoZen',
         name: '0xCryptoZen',
         avatar: 'https://avatars.githubusercontent.com/u/49605145',
         researchFields: [],
         targetConferences: []
-      }));
+      });
       setIsLoading(false);
       navigate('/');
     }, 1000);

@@ -5,6 +5,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import db from '../services/db';
+import { STORAGE_KEYS } from '../constants/storage';
+import { readJSON, writeJSON } from '../services/storage';
 
 interface SyncStatus {
   lastSync: string | null;
@@ -12,17 +14,16 @@ interface SyncStatus {
   error: string | null;
 }
 
-const SYNC_STATUS_KEY = 'researchflow_sync_status';
+const SYNC_STATUS_KEY = STORAGE_KEYS.SYNC_STATUS;
 
 export function useUserSync(userId: string | null) {
   const [status, setStatus] = useState<SyncStatus>(() => {
-    const saved = localStorage.getItem(SYNC_STATUS_KEY);
-    return saved ? JSON.parse(saved) : { lastSync: null, pending: false, error: null };
+    return readJSON<SyncStatus>(SYNC_STATUS_KEY, { lastSync: null, pending: false, error: null });
   });
 
   // 保存同步状态
   useEffect(() => {
-    localStorage.setItem(SYNC_STATUS_KEY, JSON.stringify(status));
+    writeJSON(SYNC_STATUS_KEY, status);
   }, [status]);
 
   // 同步到服务器（模拟）

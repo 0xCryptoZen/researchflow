@@ -1,14 +1,5 @@
 import { useState, useEffect } from 'react';
-import { type SearchResult } from '../services/papers';
-
-const STORAGE_KEY = 'researchflow_papers';
-
-interface SavedPaper extends SearchResult {
-  savedAt: string;
-  notes: string;
-  tags: string[];
-  isFavorite?: boolean;
-}
+import { type SavedPaper, papersRepository } from '../repositories/papersRepository';
 
 export default function MyPapers() {
   const [papers, setPapers] = useState<SavedPaper[]>([]);
@@ -18,43 +9,28 @@ export default function MyPapers() {
   const [noteContent, setNoteContent] = useState('');
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      setPapers(JSON.parse(saved));
-    }
+    setPapers(papersRepository.getAll());
   }, []);
 
-  const savePapers = (newPapers: SavedPaper[]) => {
-    setPapers(newPapers);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newPapers));
-  };
-
   const deletePaper = (id: string) => {
-    savePapers(papers.filter(p => p.id !== id));
+    papersRepository.deleteById(id);
+    setPapers(papersRepository.getAll());
   };
 
   const updateNotes = (id: string, notes: string) => {
-    savePapers(papers.map(p => p.id === id ? { ...p, notes } : p));
+    papersRepository.updateNotes(id, notes);
+    setPapers(papersRepository.getAll());
     setEditingNotes(null);
   };
 
   const addTag = (id: string, tag: string) => {
-    if (!tag.trim()) return;
-    savePapers(papers.map(p => {
-      if (p.id === id && !p.tags.includes(tag)) {
-        return { ...p, tags: [...p.tags, tag] };
-      }
-      return p;
-    }));
+    papersRepository.addTag(id, tag);
+    setPapers(papersRepository.getAll());
   };
 
   const removeTag = (id: string, tag: string) => {
-    savePapers(papers.map(p => {
-      if (p.id === id) {
-        return { ...p, tags: p.tags.filter(t => t !== tag) };
-      }
-      return p;
-    }));
+    papersRepository.removeTag(id, tag);
+    setPapers(papersRepository.getAll());
   };
 
   const filteredPapers = papers.filter(p => {
@@ -124,9 +100,8 @@ export default function MyPapers() {
                     <span className="text-sm text-slate-500">{paper.publishedDate}</span>
                     <button
                       onClick={() => {
-                        savePapers(papers.map(p => 
-                          p.id === paper.id ? { ...p, isFavorite: !p.isFavorite } : p
-                        ));
+                        papersRepository.toggleFavorite(paper.id);
+                        setPapers(papersRepository.getAll());
                       }}
                       className={`text-lg ${paper.isFavorite ? 'text-red-500' : 'text-slate-300'}`}
                     >
