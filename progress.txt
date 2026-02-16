@@ -1,0 +1,14 @@
+# Better Ralph Progress
+
+## 2026-02-16 12:30 - US-001
+- 实现了 GitHub 登录模拟功能，包含登录页面、用户菜单、登出功能
+- Files changed:
+  - src/pages/Login.tsx
+  - src/services/auth.ts
+  - src/components/layout/Layout.tsx
+  - src/App.tsx
+- **Learnings for future iterations:**
+  - 使用 localStorage 模拟用户登录状态
+  - 登录后自动跳转到首页
+  - 未登录用户会被重定向到登录页
+---

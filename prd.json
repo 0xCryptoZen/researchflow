@@ -14,8 +14,8 @@
         "支持 GitHub 账号关联"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成 GitHub 登录模拟，包含登录页面、用户状态管理、登出功能"
     },
     {
       "id": "US-002",
