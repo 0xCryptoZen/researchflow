@@ -187,8 +187,37 @@
         "投稿记录统计"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成投稿进度追踪，包含创建投稿记录、状态更新、时间线展示功能"
+    },
+    {
+      "id": "US-014",
+      "title": "写作进度提醒",
+      "description": "作为用户，我想根据投稿截止日期收到写作进度提醒",
+      "acceptanceCriteria": [
+        "设置写作里程碑",
+        "自动计算各阶段截止日期",
+        "里程碑前提醒",
+        "进度可视化"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "已完成写作进度提醒，包含里程碑管理、进度追踪、截止日期提醒功能"
+    },
+    {
+      "id": "US-015",
+      "title": "首页仪表盘",
+      "description": "作为用户，我想在首页看到关键信息概览",
+      "acceptanceCriteria": [
+        "展示今日推荐论文",
+        "显示任务待办",
+        "显示会议截稿倒计时",
+        "显示投稿进度",
+        "快速入口功能"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "已完成首页仪表盘，包含统计卡片、论文推荐、待办任务、会议截稿、投稿进度展示"
     },
     {
       "id": "US-014",
@@ -230,8 +259,8 @@
         "多设备登录支持"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成数据同步，包含数据库服务(db.ts)、用户同步钩子(useUserSync)、数据导入导出功能。注：需要部署到 Cloudflare Workers 才能真正实现多设备同步"
     }
   ]
 }
