@@ -1,0 +1,237 @@
+{
+  "project": "ResearchFlow - 科研论文管理助手",
+  "branchName": "researchflow/main",
+  "description": "通用科研论文管理APP，支持多领域论文追踪、任务管理、写作辅助、会议投稿全流程",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "用户注册与登录",
+      "description": "作为用户，我想通过 GitHub 登录，以便跨设备同步数据",
+      "acceptanceCriteria": [
+        "GitHub OAuth 登录集成完成",
+        "用户信息存储到 Cloudflare D1",
+        "登录后跳转至首页",
+        "支持 GitHub 账号关联"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "研究领域选择",
+      "description": "作为用户，我想选择研究领域，以便系统推荐合适的目标会议/期刊",
+      "acceptanceCriteria": [
+        "提供领域选择列表（区块链、AI、安全、网络等）",
+        "选择领域后显示推荐会议/期刊列表",
+        "用户可自定义添加目标会议/期刊",
+        "领域选择可随时修改"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "论文来源集成",
+      "description": "作为用户，我想在一个平台查看所有来源的论文",
+      "acceptanceCriteria": [
+        "arXiv API 集成",
+        "Google Scholar 搜索集成",
+        "DBLP API 集成",
+        "IEEE/ACM 搜索集成",
+        "统一展示论文列表"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "论文收藏与管理",
+      "description": "作为用户，我想收藏和管理感兴趣的论文",
+      "acceptanceCriteria": [
+        "论文详情页展示",
+        "收藏论文到个人库",
+        "添加阅读笔记",
+        "论文分类/标签管理",
+        "论文搜索和过滤"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "每日论文推荐",
+      "description": "作为用户，我想每天收到论文推荐，保持科研跟进",
+      "acceptanceCriteria": [
+        "基于用户领域推荐论文",
+        "每日定时推送（可配置时间）",
+        "支持邮件/飞书/ Telegram 通知",
+        "推荐算法可配置"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "会议截稿倒计时",
+      "description": "作为用户，我想看到目标会议的截稿日期倒计时",
+      "acceptanceCriteria": [
+        "显示所有目标会议的倒计时",
+        "截稿前 N 天提醒",
+        "会议信息自动更新",
+        "支持自定义会议添加"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "任务/待办管理",
+      "description": "作为用户，我想创建和管理科研任务",
+      "acceptanceCriteria": [
+        "创建/编辑/删除任务",
+        "任务截止日期设置",
+        "任务优先级设置",
+        "任务状态管理（待办/进行中/完成）",
+        "任务关联论文/会议"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "提醒系统",
+      "description": "作为用户，我想收到各种科研相关提醒",
+      "acceptanceCriteria": [
+        "每日论文推荐提醒",
+        "会议截稿提醒",
+        "任务截止提醒",
+        "写作进度提醒",
+        "自定义提醒设置",
+        "支持多渠道通知"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "LaTeX 模板库",
+      "description": "作为用户，我想使用标准的 LaTeX 论文模板",
+      "acceptanceCriteria": [
+        "内置多种会议模板（IEEE, ACM, etc.）",
+        "模板预览功能",
+        "一键克隆模板到本地",
+        "模板分类搜索"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "论文大纲生成",
+      "description": "作为用户，我想根据已有研究生成论文大纲",
+      "acceptanceCriteria": [
+        "基于收藏论文生成大纲建议",
+        "标准学术论文结构模板",
+        "大纲编辑和保存",
+        "大纲导出功能"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "参考文献管理",
+      "description": "作为用户，我想方便地管理论文参考文献",
+      "acceptanceCriteria": [
+        "参考文献导入（DOI/BibTeX）",
+        "参考文献格式化",
+        "参考文献库搜索",
+        "导出 BibTeX/EndNote 格式"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "图表管理",
+      "description": "作为用户，我想统一管理论文中的图表",
+      "acceptanceCriteria": [
+        "图片上传和存储",
+        "图表标签和描述",
+        "图表库浏览",
+        "图表复用功能"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "投稿进度追踪",
+      "description": "作为用户，我想追踪论文投稿到发表的完整进度",
+      "acceptanceCriteria": [
+        "创建投稿记录（期刊/会议、状态、时间线）",
+        "状态更新：投稿 → 审稿 → 接收/拒绝 → 发表",
+        "进度时间线展示",
+        "投稿记录统计"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "写作进度提醒",
+      "description": "作为用户，我想根据投稿截止日期收到写作进度提醒",
+      "acceptanceCriteria": [
+        "设置写作里程碑",
+        "自动计算各阶段截止日期",
+        "里程碑前提醒",
+        "进度可视化"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "首页仪表盘",
+      "description": "作为用户，我想在首页看到关键信息概览",
+      "acceptanceCriteria": [
+        "展示今日推荐论文",
+        "显示任务待办",
+        "显示会议截稿倒计时",
+        "显示投稿进度",
+        "快速入口功能"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "数据同步",
+      "description": "作为用户，我想在不同设备间同步数据",
+      "acceptanceCriteria": [
+        "Cloudflare D1 数据持久化",
+        "用户数据自动同步",
+        "离线支持（本地缓存）",
+        "多设备登录支持"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
