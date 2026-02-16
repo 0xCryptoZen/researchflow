@@ -131,8 +131,8 @@
         "模板分类搜索"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成LaTeX模板库，包含预设模板、搜索、筛选、下载、预览功能"
     },
     {
       "id": "US-010",
