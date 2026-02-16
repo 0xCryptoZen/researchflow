@@ -20,3 +20,11 @@
 - **Learnings for future iterations:**
   - 使用数组存储多个研究领域
   - 根据领域动态显示推荐会议
+## 2026-02-16 12:40 - US-003
+- 实现了论文来源集成功能，包含 arXiv、DBLP API
+- Files changed:
+  - src/services/papers.ts
+  - src/pages/Papers.tsx
+- **Learnings for future iterations:**
+  - ArXiv API 返回 XML 格式，需要解析
+  - DBLP API 返回 JSON 格式

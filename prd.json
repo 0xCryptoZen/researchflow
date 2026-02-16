@@ -43,8 +43,8 @@
         "统一展示论文列表"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "已完成论文搜索功能，包含 arXiv、DBLP API 集成"
     },
     {
       "id": "US-004",
