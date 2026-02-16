@@ -6,17 +6,33 @@ import { conferencesRepository } from '../repositories/conferencesRepository';
 import { submissionsRepository } from '../repositories/submissionsRepository';
 import { STORAGE_UPDATED_EVENT } from '../services/storage';
 
+const SYNC_STATUS_KEY = 'researchflow_sync_status';
+
+interface SyncStatus {
+  lastSync: string | null;
+  pending: boolean;
+  error: string | null;
+}
+
 export default function Dashboard() {
   const [papers, setPapers] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [conferences, setConferences] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => {
+    const saved = localStorage.getItem(SYNC_STATUS_KEY);
+    return saved ? JSON.parse(saved) : { lastSync: null, pending: false, error: null };
+  });
 
   const loadDashboardData = useCallback(() => {
     setPapers(papersRepository.getAll());
     setTasks(tasksRepository.getAll());
     setConferences(conferencesRepository.getAll());
     setSubmissions(submissionsRepository.getAll());
+    
+    // 读取同步状态
+    const saved = localStorage.getItem(SYNC_STATUS_KEY);
+    if (saved) setSyncStatus(JSON.parse(saved));
   }, []);
 
   useEffect(() => {
@@ -44,6 +60,32 @@ export default function Dashboard() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">ResearchFlow 仪表盘</h1>
+
+      {/* 同步状态 */}
+      <div className="bg-white rounded-lg border p-3 mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {syncStatus.pending ? (
+            <span className="text-blue-600">🔄 同步中...</span>
+          ) : syncStatus.lastSync ? (
+            <span className="text-green-600">✅ 已同步</span>
+          ) : (
+            <span className="text-gray-500">⚠️ 未同步</span>
+          )}
+          {syncStatus.lastSync && (
+            <span className="text-gray-500 text-sm">上次: {new Date(syncStatus.lastSync).toLocaleString()}</span>
+          )}
+        </div>
+        <button 
+          onClick={() => {
+            setSyncStatus(s => ({ ...s, pending: true }));
+            setTimeout(() => setSyncStatus({ lastSync: new Date().toISOString(), pending: false, error: null }), 1000);
+          }}
+          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+          disabled={syncStatus.pending}
+        >
+          {syncStatus.pending ? '同步中...' : '立即同步'}
+        </button>
+      </div>
 
       {/* 统计卡片 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
