@@ -30,7 +30,6 @@ export default function Dashboard() {
     setConferences(conferencesRepository.getAll());
     setSubmissions(submissionsRepository.getAll());
     
-    // 读取同步状态
     const saved = localStorage.getItem(SYNC_STATUS_KEY);
     if (saved) setSyncStatus(JSON.parse(saved));
   }, []);
@@ -50,29 +49,50 @@ export default function Dashboard() {
     };
   }, [loadDashboardData]);
 
-  const upcomingTasks = tasks.filter(t => t.status !== 'completed').slice(0, 3);
-  const recentPapers = papers.slice(0, 3);
+  const upcomingTasks = tasks.filter(t => t.status !== 'completed').slice(0, 5);
+  const recentPapers = papers.slice(0, 5);
   const urgentConferences = conferences.filter(c => {
     const days = Math.ceil((new Date(c.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
     return days > 0 && days < 30;
-  }).slice(0, 3);
+  }).slice(0, 5);
+
+  const statCards = [
+    { icon: '📚', title: '收藏论文', count: papers.length, link: '/papers', color: 'text-amber-600', bg: 'bg-amber-50' },
+    { icon: '📝', title: '待办任务', count: tasks.filter(t => t.status !== 'completed').length, link: '/tasks', color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { icon: '📅', title: '目标会议', count: conferences.length, link: '/conferences', color: 'text-violet-600', bg: 'bg-violet-50' },
+    { icon: '📤', title: '投稿中', count: submissions.filter(s => s.status === 'submitted' || s.status === 'under_review').length, link: '/submissions', color: 'text-orange-600', bg: 'bg-orange-50' },
+  ];
+
+  const getStatusTag = (status: string, priority?: string) => {
+    const styles: Record<string, string> = {
+      high: 'bg-amber-100 text-amber-700',
+      medium: 'bg-yellow-100 text-yellow-700',
+      low: 'bg-slate-100 text-slate-600',
+      reviewing: 'bg-amber-100 text-amber-700',
+      accepted: 'bg-emerald-100 text-emerald-700',
+      revising: 'bg-yellow-100 text-yellow-700',
+      pending: 'bg-violet-100 text-violet-700',
+      draft: 'bg-slate-100 text-slate-600',
+    };
+    return priority ? styles[priority] || styles.draft : styles[status] || styles.draft;
+  };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">ResearchFlow 仪表盘</h1>
-
+    <div className="space-y-6">
       {/* 同步状态 */}
-      <div className="bg-white rounded-lg border p-3 mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="bg-white rounded-xl border border-[#E8DFD5] p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
           {syncStatus.pending ? (
-            <span className="text-blue-600">🔄 同步中...</span>
+            <span className="text-sm text-violet-600">🔄 同步中...</span>
           ) : syncStatus.lastSync ? (
-            <span className="text-green-600">✅ 已同步</span>
+            <span className="text-sm text-emerald-600">✅ 数据已同步</span>
           ) : (
-            <span className="text-gray-500">⚠️ 未同步</span>
+            <span className="text-sm text-[#9A8677]">⚠️ 未同步</span>
           )}
           {syncStatus.lastSync && (
-            <span className="text-gray-500 text-sm">上次: {new Date(syncStatus.lastSync).toLocaleString()}</span>
+            <span className="text-xs text-[#9A8677]">
+              上次: {new Date(syncStatus.lastSync).toLocaleString()}
+            </span>
           )}
         </div>
         <button 
@@ -80,86 +100,96 @@ export default function Dashboard() {
             setSyncStatus(s => ({ ...s, pending: true }));
             setTimeout(() => setSyncStatus({ lastSync: new Date().toISOString(), pending: false, error: null }), 1000);
           }}
-          className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
-          disabled={syncStatus.pending}
+          className="px-4 py-1.5 bg-gradient-to-r from-[#8B5A2B] to-[#A67C52] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
         >
           {syncStatus.pending ? '同步中...' : '立即同步'}
         </button>
       </div>
 
-      {/* 统计卡片 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <StatCard icon="📄" title="收藏论文" count={papers.length} link="/papers" color="blue" />
-        <StatCard icon="✅" title="待办任务" count={tasks.filter(t => t.status !== 'completed').length} link="/tasks" color="green" />
-        <StatCard icon="📅" title="目标会议" count={conferences.length} link="/conferences" color="purple" />
-        <StatCard icon="📤" title="投稿中" count={submissions.filter(s => s.status === 'submitted' || s.status === 'under_review').length} link="/submissions" color="orange" />
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        {statCards.map((stat, idx) => (
+          <Link
+            key={idx}
+            to={stat.link}
+            className="bg-white rounded-xl border border-[#E8DFD5] p-5 hover:border-[#8B5A2B]/30 hover:shadow-lg transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-xl ${stat.bg} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform`}>
+                {stat.icon}
+              </div>
+              <div>
+                <div className={`text-2xl font-bold ${stat.color} font-serif`}>{stat.count}</div>
+                <div className="text-xs text-[#9A8677]">{stat.title}</div>
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 今日推荐 */}
-        <div className="bg-white rounded-lg border p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">📄 今日推荐论文</h2>
-            <Link to="/papers/search" className="text-blue-600 text-sm">查看全部</Link>
+      <div className="grid grid-cols-2 gap-6">
+        {/* 最近收藏 */}
+        <div className="bg-white rounded-xl border border-[#E8DFD5] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-lg text-[#2C1810]">📚 最近收藏</h3>
+            <Link to="/papers" className="text-sm text-[#8B5A2B] hover:underline">查看全部 →</Link>
           </div>
           {recentPapers.length > 0 ? (
             <div className="space-y-3">
               {recentPapers.map((paper: any) => (
-                <div key={paper.id} className="p-3 bg-gray-50 rounded-lg">
-                  <h3 className="font-medium text-gray-900 text-sm">{paper.title}</h3>
-                  <p className="text-gray-500 text-xs mt-1">{paper.authors}</p>
+                <div key={paper.id} className="p-3 bg-[#FAF6F1] rounded-lg hover:bg-[#F5EDE3] transition-colors cursor-pointer">
+                  <div className="font-medium text-sm text-[#2C1810] line-clamp-1">{paper.title}</div>
+                  <div className="text-xs text-[#9A8677] mt-1 truncate">{paper.authors?.join(', ')}</div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">暂无推荐</p>
+            <div className="text-center py-8 text-[#9A8677] text-sm">暂无收藏论文</div>
           )}
         </div>
 
         {/* 待办任务 */}
-        <div className="bg-white rounded-lg border p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">✅ 待办任务</h2>
-            <Link to="/tasks" className="text-blue-600 text-sm">查看全部</Link>
+        <div className="bg-white rounded-xl border border-[#E8DFD5] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-lg text-[#2C1810]">📝 待办任务</h3>
+            <Link to="/tasks" className="text-sm text-[#8B5A2B] hover:underline">查看全部 →</Link>
           </div>
           {upcomingTasks.length > 0 ? (
             <div className="space-y-3">
               {upcomingTasks.map((task: any) => (
-                <div key={task.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
-                  <div>
-                    <h3 className="font-medium text-gray-900 text-sm">{task.title}</h3>
-                    <p className="text-gray-500 text-xs">{task.dueDate || '无截止日期'}</p>
+                <div key={task.id} className="flex items-center justify-between p-3 bg-[#FAF6F1] rounded-lg">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm text-[#2C1810] truncate">{task.title}</div>
+                    <div className="text-xs text-[#9A8677]">{task.dueDate || '无截止日期'}</div>
                   </div>
-                  <span className={`px-2 py-0.5 rounded text-xs ${
-                    task.priority === 'high' ? 'bg-red-100 text-red-800' :
-                    task.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>{task.priority === 'high' ? '高' : task.priority === 'medium' ? '中' : '低'}</span>
+                  <span className={`ml-3 px-2.5 py-1 rounded-full text-xs font-medium ${getStatusTag(task.status, task.priority)}`}>
+                    {task.priority === 'high' ? '高' : task.priority === 'medium' ? '中' : '低'}
+                  </span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">暂无待办</p>
+            <div className="text-center py-8 text-[#9A8677] text-sm">暂无待办任务</div>
           )}
         </div>
 
         {/* 会议截稿 */}
-        <div className="bg-white rounded-lg border p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">📅 会议截稿</h2>
-            <Link to="/conferences" className="text-blue-600 text-sm">查看全部</Link>
+        <div className="bg-white rounded-xl border border-[#E8DFD5] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-lg text-[#2C1810]">📅 会议截稿</h3>
+            <Link to="/conferences" className="text-sm text-[#8B5A2B] hover:underline">查看全部 →</Link>
           </div>
           {urgentConferences.length > 0 ? (
             <div className="space-y-3">
               {urgentConferences.map((conf: any) => {
                 const days = Math.ceil((new Date(conf.deadline).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
                 return (
-                  <div key={conf.id} className="p-3 bg-gray-50 rounded-lg flex justify-between items-center">
-                    <div>
-                      <h3 className="font-medium text-gray-900 text-sm">{conf.name}</h3>
-                      <p className="text-gray-500 text-xs">{conf.deadline}</p>
+                  <div key={conf.id} className="flex items-center justify-between p-3 bg-[#FAF6F1] rounded-lg">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm text-[#2C1810]">{conf.name}</div>
+                      <div className="text-xs text-[#9A8677]">{conf.deadline}</div>
                     </div>
-                    <span className={`px-2 py-0.5 rounded text-xs ${days < 7 ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800'}`}>
+                    <span className={`ml-3 px-2.5 py-1 rounded-full text-xs font-medium ${days < 7 ? 'bg-amber-100 text-amber-700' : 'bg-violet-100 text-violet-700'}`}>
                       {days} 天
                     </span>
                   </div>
@@ -167,65 +197,38 @@ export default function Dashboard() {
               })}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">暂无紧迫截稿</p>
+            <div className="text-center py-8 text-[#9A8677] text-sm">暂无紧迫截稿</div>
           )}
         </div>
 
         {/* 投稿进度 */}
-        <div className="bg-white rounded-lg border p-5">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-sem-semibold">📤 投稿进度</h2>
-            <Link to="/submissions" className="text-blue-600 text-sm">查看全部</Link>
+        <div className="bg-white rounded-xl border border-[#E8DFD5] p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-lg text-[#2C1810]">📤 投稿进度</h3>
+            <Link to="/submissions" className="text-sm text-[#8B5A2B] hover:underline">查看全部 →</Link>
           </div>
           {submissions.length > 0 ? (
             <div className="space-y-3">
-              {submissions.slice(0, 3).map((sub: any) => (
-                <div key={sub.id} className="p-3 bg-gray-50 rounded-lg">
-                  <h3 className="font-medium text-gray-900 text-sm">{sub.paperTitle}</h3>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-2 py-0.5 rounded text-xs ${
-                      sub.status === 'accepted' ? 'bg-green-100 text-green-800' :
-                      sub.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                      sub.status === 'under_review' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
+              {submissions.slice(0, 5).map((sub: any) => (
+                <div key={sub.id} className="p-3 bg-[#FAF6F1] rounded-lg">
+                  <div className="font-medium text-sm text-[#2C1810] line-clamp-1">{sub.paperTitle}</div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusTag(sub.status)}`}>
                       {sub.status === 'draft' ? '草稿' :
                        sub.status === 'submitted' ? '已投稿' :
                        sub.status === 'under_review' ? '审稿中' :
-                       sub.status === 'accepted' ? '已接收' :
-                       sub.status === 'rejected' ? '被拒稿' : '已发表'}
+                       sub.status === 'accepted' ? '已接收' : '被拒稿'}
                     </span>
-                    <span className="text-gray-500 text-xs">{sub.venue}</span>
+                    <span className="text-xs text-[#9A8677]">{sub.venue}</span>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">暂无投稿</p>
+            <div className="text-center py-8 text-[#9A8677] text-sm">暂无投稿记录</div>
           )}
         </div>
       </div>
     </div>
-  );
-}
-
-function StatCard({ icon, title, count, link, color }: { icon: string; title: string; count: number; link: string; color: string }) {
-  const colors: Record<string, string> = {
-    blue: 'bg-blue-50 border-blue-200',
-    green: 'bg-green-50 border-green-200',
-    purple: 'bg-purple-50 border-purple-200',
-    orange: 'bg-orange-50 border-orange-200',
-  };
-  
-  return (
-    <Link to={link} className={`block p-5 rounded-lg border ${colors[color]} hover:shadow-md transition-shadow`}>
-      <div className="flex items-center gap-3">
-        <span className="text-2xl">{icon}</span>
-        <div>
-          <p className="text-2xl font-bold text-gray-900">{count}</p>
-          <p className="text-sm text-gray-600">{title}</p>
-        </div>
-      </div>
-    </Link>
   );
 }

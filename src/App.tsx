@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
+import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import ResearchFields from './pages/ResearchFields';
@@ -14,13 +15,18 @@ import References from './pages/References';
 import Charts from './pages/Charts';
 import Submissions from './pages/Submissions';
 import WritingProgress from './pages/WritingProgress';
+import Pricing from './pages/Pricing';
+import Invite from './pages/Invite';
+import PromotionPage from './pages/PromotionPage';
+import ChatWidget from './components/ChatWidget';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Layout><Dashboard /></Layout>} />
+        <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Layout><Dashboard /></Layout>} />
         <Route path="/settings/fields" element={<Layout><ResearchFields /></Layout>} />
         <Route path="/papers/search" element={<Layout><Papers /></Layout>} />
         <Route path="/papers" element={<Layout><MyPapers /></Layout>} />
@@ -33,8 +39,12 @@ export default function App() {
         <Route path="/charts" element={<Layout><Charts /></Layout>} />
         <Route path="/submissions" element={<Layout><Submissions /></Layout>} />
         <Route path="/writing" element={<Layout><WritingProgress /></Layout>} />
+        <Route path="/pricing" element={<Layout><Pricing /></Layout>} />
+        <Route path="/invite" element={<Layout><Invite /></Layout>} />
+        <Route path="/promotion" element={<Layout><PromotionPage /></Layout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <ChatWidget />
     </BrowserRouter>
   );
 }

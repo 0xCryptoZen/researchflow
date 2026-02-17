@@ -1,0 +1,173 @@
+openapi: 3.0.3
+info:
+  title: ResearchFlow Promotion API
+  description: 推广促销系统 API - 邀请奖励、限时优惠、分享奖励
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3003
+    description: 本地开发服务器
+
+paths:
+  # 邀请系统
+  /api/invite/code:
+    get:
+      summary: 获取用户邀请码
+      tags:
+        - Invite
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 邀请码信息
+
+    post:
+      summary: 生成邀请码
+      tags:
+        - Invite
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 生成的邀请码
+
+  /api/invite/records:
+    get:
+      summary: 获取邀请记录
+      tags:
+        - Invite
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 邀请记录列表
+
+  /api/invite/register:
+    post:
+      summary: 使用邀请码注册
+      tags:
+        - Invite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - inviteCode
+                - email
+                - password
+              properties:
+                inviteCode:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: 注册成功
+
+  # 奖励系统
+  /api/rewards:
+    get:
+      summary: 获取用户奖励
+      tags:
+        - Rewards
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 奖励信息
+
+  /api/rewards/claim:
+    post:
+      summary: 领取奖励
+      tags:
+        - Rewards
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - rewardType
+              properties:
+                rewardType:
+                  type: string
+                  enum: [invite, share, survey]
+      responses:
+        '200':
+          description: 奖励领取结果
+
+  # 活动专区
+  /api/promotion/active:
+    get:
+      summary: 获取当前活动
+      tags:
+        - Promotion
+      responses:
+        '200':
+          description: 活动信息
+
+  /api/promotion/limit-time:
+    get:
+      summary: 获取限时优惠
+      tags:
+        - Promotion
+      responses:
+        '200':
+          description: 限时优惠信息
+
+  # 分享奖励
+  /api/share/stats:
+    get:
+      summary: 获取分享统计数据
+      tags:
+        - Share
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 分享统计
+
+  /api/share/track:
+    post:
+      summary: 记录分享
+      tags:
+        - Share
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - platform
+              properties:
+                platform:
+                  type: string
+                  enum: [twitter, weibo, linkedin]
+      responses:
+        '200':
+          description: 分享记录成功
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer

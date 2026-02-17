@@ -1,24 +1,30 @@
 import { type ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import auth, { type AuthUser } from '../../services/auth';
+import { auth, type AuthUser } from '../../services/auth';
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 const navItems = [
-  { path: '/', label: 'Dashboard', icon: '📊' },
-  { path: '/papers/search', label: '搜索论文', icon: '🔍' },
-  { path: '/papers', label: '我的论文', icon: '📄' },
-  { path: '/tasks', label: 'Tasks', icon: '✅' },
-  { path: '/conferences', label: 'Conferences', icon: '📅' },
-  { path: '/reminders', label: 'Reminders', icon: '🔔' },
-  { path: '/outline', label: 'Outline', icon: '📋' },
-  { path: '/references', label: 'References', icon: '📚' },
-  { path: '/charts', label: 'Charts', icon: '📊' },
-  { path: '/submissions', label: 'Submissions', icon: '📤' },
-  { path: '/writing', label: 'Writing', icon: '✍️' },
-  { path: '/templates', label: 'Templates', icon: '📝' },
+  { path: '/dashboard', label: '工作台', icon: '📊' },
+  { path: '/papers/search', label: '论文搜索', icon: '🔍' },
+  { path: '/papers', label: '我的收藏', icon: '📚' },
+  { path: '/tasks', label: '任务管理', icon: '📝' },
+  { path: '/conferences', label: '会议日历', icon: '📅' },
+  { path: '/submissions', label: '投稿进度', icon: '📤' },
+  { path: '/writing', label: '写作进度', icon: '✍️' },
+  { path: '/references', label: '参考文献', icon: '📖' },
+  { path: '/charts', label: '图表管理', icon: '📈' },
+  { path: '/outline', label: '论文大纲', icon: '📋' },
+  { path: '/templates', label: 'LaTeX 模板', icon: '📄' },
+  { path: '/reminders', label: '提醒设置', icon: '🔔' },
+];
+
+const secondaryNav = [
+  { path: '/invite', label: '邀请好友', icon: '🎁' },
+  { path: '/promotion', label: '限时活动', icon: '🔥' },
+  { path: '/pricing', label: '订阅服务', icon: '💎' },
 ];
 
 export default function Layout({ children }: LayoutProps) {
@@ -26,107 +32,164 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const [user, setUser] = useState<AuthUser | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    setUser(auth.getCurrentUser());
-  }, [location.pathname]);
+    const currentUser = auth.getCurrentUser();
+    setUser(currentUser);
+  }, []);
 
   const handleLogout = () => {
     auth.logout();
     setUser(null);
-    navigate('/login');
+    navigate('/');
   };
 
-  // Show login page if not logged in
-  if (!user && location.pathname !== '/login') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold text-white mb-4">ResearchFlow</h1>
-          <p className="text-slate-400 mb-6">请先登录</p>
-          <Link to="/login" className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            登录
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/papers/search?q=${encodeURIComponent(searchQuery)}`);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <header className="bg-white border-b border-slate-200 px-6 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-slate-800">ResearchFlow</Link>
-          
-          <div className="flex items-center gap-4">
-            {user && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-2 hover:bg-slate-100 rounded-lg px-3 py-2 transition-colors"
-                >
-                  <img
-                    src={user.avatar || 'https://avatars.githubusercontent.com/u/49605145'}
-                    alt={user.name}
-                    className="w-8 h-8 rounded-full"
-                  />
-                  <span className="text-sm font-medium text-slate-700">{user.name}</span>
-                </button>
-                
-                {showUserMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-slate-200 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-slate-100">
-                      <div className="text-sm font-medium text-slate-800">{user.name}</div>
-                      <div className="text-xs text-slate-500">{user.email}</div>
-                    </div>
-                    <Link to="/settings" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">
-                      ⚙️ 设置
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-100"
-                    >
-                      🚪 退出登录
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+    <div className="min-h-screen flex bg-[#FAF6F1]">
+      {/* 侧边栏 */}
+      <aside className="w-60 bg-white border-r border-[#E8DFD5] fixed left-0 top-0 bottom-0 flex flex-col">
+        {/* Logo */}
+        <div className="p-5 border-b border-[#E8DFD5]">
+          <Link to="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5A2B] to-[#C4956A] flex items-center justify-center text-white font-bold text-lg">
+              R
+            </div>
+            <div>
+              <div className="font-serif text-base font-semibold text-[#2C1810]">学术书卷</div>
+              <div className="text-[10px] text-[#9A8677] uppercase tracking-wider">ResearchFlow</div>
+            </div>
+          </Link>
         </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto flex">
-        {/* Sidebar */}
-        <nav className="w-56 py-6 pr-4">
-          <ul className="space-y-1">
-            {navItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <li key={item.path}>
-                  <Link
-                    to={item.path}
-                    className={`flex items-center gap-3 px-4 py-2.5 rounded-lg transition-colors ${
-                      isActive
-                        ? 'bg-blue-50 text-blue-700 font-medium'
-                        : 'text-slate-600 hover:bg-slate-100'
-                    }`}
-                  >
-                    <span>{item.icon}</span>
-                    <span>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+        {/* 主导航 */}
+        <nav className="flex-1 overflow-y-auto p-3">
+          <div className="text-[11px] font-medium text-[#9A8677] uppercase tracking-wider mb-2 px-3">
+            功能
+          </div>
+          {navItems.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm transition-all ${
+                location.pathname === item.path
+                  ? 'bg-[#8B5A2B]/10 text-[#8B5A2B] font-medium'
+                  : 'text-[#6B5344] hover:bg-[#F5EDE3]'
+              }`}
+            >
+              <span className="text-base">{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+
+          <div className="text-[11px] font-medium text-[#9A8677] uppercase tracking-wider mb-2 px-3 mt-4">
+            推广
+          </div>
+          {secondaryNav.map((item) => (
+            <Link
+              key={item.path}
+              to={item.path}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 text-sm transition-all ${
+                location.pathname === item.path
+                  ? 'bg-[#8B5A2B]/10 text-[#8B5A2B] font-medium'
+                  : 'text-[#6B5344] hover:bg-[#F5EDE3]'
+              }`}
+            >
+              <span className="text-base">{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          ))}
         </nav>
 
-        {/* Main Content */}
-        <main className="flex-1 py-6 pl-4">
+        {/* 用户信息 */}
+        <div className="p-4 border-t border-[#E8DFD5]">
+          {user ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-[#F5EDE3] transition-colors"
+              >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#C4956A] text-white flex items-center justify-center font-semibold text-sm">
+                  {user.name?.charAt(0) || 'U'}
+                </div>
+                <div className="flex-1 text-left min-w-0">
+                  <div className="text-sm font-medium text-[#2C1810] truncate">{user.name}</div>
+                  <div className="text-xs text-[#9A8677] truncate">{user.email}</div>
+                </div>
+              </button>
+              
+              {showUserMenu && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-[#E8DFD5] rounded-lg shadow-lg overflow-hidden">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2.5 text-left text-sm text-[#A65D4E] hover:bg-[#F5EDE3] transition-colors"
+                  >
+                    退出登录
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="block w-full py-2.5 text-center bg-gradient-to-r from-[#8B5A2B] to-[#A67C52] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              登录 / 注册
+            </Link>
+          )}
+        </div>
+      </aside>
+
+      {/* 主内容区 */}
+      <main className="flex-1 ml-60">
+        {/* 顶部栏 */}
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-[#E8DFD5] px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[#9A8677]">/</span>
+              <span className="font-medium text-[#2C1810]">
+                {navItems.find(n => n.path === location.pathname)?.label || 
+                 secondaryNav.find(n => n.path === location.pathname)?.label || 
+                 '工作台'}
+              </span>
+            </div>
+            
+            {/* 搜索框 */}
+            <form onSubmit={handleSearch} className="relative w-80">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="搜索论文、任务..."
+                className="w-full h-9 pl-9 pr-4 bg-[#FAF6F1] border border-[#E8DFD5] rounded-lg text-sm focus:outline-none focus:border-[#8B5A2B] focus:ring-1 focus:ring-[#8B5A2B]/20 transition-all"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#9A8677]">🔍</span>
+            </form>
+            
+            {/* 右侧操作 */}
+            <div className="flex items-center gap-3">
+              <button className="w-9 h-9 rounded-lg border border-[#E8DFD5] bg-white flex items-center justify-center text-sm hover:bg-[#F5EDE3] transition-colors">
+                🔔
+              </button>
+              <button className="w-9 h-9 rounded-lg border border-[#E8DFD5] bg-white flex items-center justify-center text-sm hover:bg-[#F5EDE3] transition-colors">
+                ⚙️
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* 内容 */}
+        <div className="p-6">
           {children}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

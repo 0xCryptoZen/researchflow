@@ -1,0 +1,302 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  /* 主色系 */
+  --color-primary: #8B5A2B;
+  --color-primary-light: #A67C52;
+  --color-primary-dark: #5D3A1A;
+  
+  /* 辅色系 */
+  --color-secondary: #D4A574;
+  --color-accent: #C4956A;
+  
+  /* 背景色 */
+  --color-background: #FAF6F1;
+  --color-background-alt: #F5EDE3;
+  --color-card: #FFFFFF;
+  --color-card-hover: #FFFDF9;
+  
+  /* 文字色 */
+  --color-text: #2C1810;
+  --color-text-secondary: #6B5344;
+  --color-text-muted: #9A8677;
+  
+  /* 边框 */
+  --color-border: #E8DFD5;
+  --color-border-light: #F0E8DE;
+  
+  /* 状态色 */
+  --color-success: #4A7C59;
+  --color-warning: #C4883A;
+  --color-error: #A65D4E;
+  --color-info: #5B7B8C;
+  
+  /* 状态标签 */
+  --color-reviewing: #E8A54B;
+  --color-accepted: #4A7C59;
+  --color-revising: #D4A03A;
+  --color-pending: #7B5AA6;
+  --color-draft: #8B9AA3;
+  
+  /* 字体 */
+  --font-heading: "Noto Serif SC", "Source Han Serif SC", Georgia, serif;
+  --font-body: "DM Sans", "Noto Sans SC", -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(44, 24, 16, 0.05);
+  --shadow-md: 0 4px 12px rgba(44, 24, 16, 0.08);
+  --shadow-lg: 0 8px 24px rgba(44, 24, 16, 0.12);
+  --shadow-xl: 0 12px 40px rgba(44, 24, 16, 0.16);
+  
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* 学术风格卡片 */
+.academic-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.academic-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary-light);
+}
+
+/* 学术风格按钮 */
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* 状态标签 */
+.status-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-reviewing {
+  background: rgba(232, 165, 75, 0.15);
+  color: #B8832A;
+}
+
+.status-accepted {
+  background: rgba(74, 124, 89, 0.15);
+  color: #3A6147;
+}
+
+.status-revising {
+  background: rgba(212, 160, 58, 0.15);
+  color: #A67C00;
+}
+
+.status-pending {
+  background: rgba(123, 90, 166, 0.15);
+  color: #5B3D7A;
+}
+
+.status-draft {
+  background: rgba(139, 154, 163, 0.15);
+  color: #6B7A83;
+}
+
+/* 渐入动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease forwards;
+}
+
+/* 进度条 */
+.progress-bar {
+  height: 8px;
+  background: var(--color-border-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-secondary));
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+/* 输入框 */
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: var(--color-card);
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(139, 90, 43, 0.1);
+}
+
+/* 侧边栏 */
+.sidebar {
+  background: var(--color-card);
+  border-right: 1px solid var(--color-border);
+  min-height: 100vh;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-item:hover {
+  background: var(--color-background-alt);
+  color: var(--color-text);
+}
+
+.sidebar-item.active {
+  background: var(--color-background-alt);
+  color: var(--color-primary);
+  border-left-color: var(--color-primary);
+}
+
+/* 表格 */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  text-align: left;
+  padding: 14px 16px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background-alt);
+}
+
+.data-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.data-table tr:hover td {
+  background: var(--color-card-hover);
+}
+
+/* 徽章 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-background-alt);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

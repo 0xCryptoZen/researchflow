@@ -1,6 +1,31 @@
 # Better Ralph Progress
 
-## 2026-02-16 12:30 - US-001
+## 2026-02-16 23:30 - US-007 任务编辑 + 论文/会议关联
+- 新增任务编辑功能（点击 ✏️ 按钮）
+- 新增关联论文功能（下拉选择收藏的论文）
+- 新增关联会议功能（下拉选择目标会议）
+- 关联显示支持点击跳转
+- 更新 tasksRepository 添加 update 方法和 relatedPaperId/relatedConferenceId 字段
+- Files changed:
+  - src/pages/Tasks.tsx
+  - src/repositories/tasksRepository.ts
+- **Learnings for future iterations:**
+  - 任务与论文/会议的关联是多模块联动的典型场景
+  - 使用下拉选择简化关联操作
+
+## 2026-02-16 23:35 - US-015 仪表盘接入同步状态
+- 仪表盘显示同步状态（已同步/同步中/未同步）
+- 显示上次同步时间
+- 添加"立即同步"按钮（模拟）
+- Files changed:
+  - src/pages/Dashboard.tsx
+- **Learnings for future iterations:**
+  - 同步状态展示提升用户体验
+  - 真正的后端同步需 Cloudflare Workers D1
+
+---
+
+## 历史记录 (见上方)
 - 实现了 GitHub 登录模拟功能，包含登录页面、用户菜单、登出功能
 - Files changed:
   - src/pages/Login.tsx

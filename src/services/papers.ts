@@ -1,89 +1,44 @@
-// Paper API Service - ArXiv, Google Scholar, DBLP, IEEE/ACM integration
+// Paper API Service - 支持多源学术搜索
+// 包含: ArXiv, DBLP, Semantic Scholar, PubMed
+
+const SEARCH_API = 'http://localhost:3002';
 
 export interface SearchResult {
   id: string;
   title: string;
   authors: string[];
-  abstract: string;
-  source: 'arxiv' | 'scholar' | 'dblp' | 'ieee' | 'acm';
+  abstract?: string;
+  source: 'arxiv' | 'dblp' | 'semantic' | 'pubmed';
   url: string;
-  publishedDate: string;
-  tags: string[];
+  year?: number;
+  venue?: string;
+  citations?: number;
+  categories?: string[];
+  publishedDate?: string;
+  tags?: string[];
 }
 
-// ArXiv API
-export async function searchArxiv(query: string, maxResults = 10): Promise<SearchResult[]> {
-  const response = await fetch(
-    `http://export.arxiv.org/api/query?search_query=all:${encodeURIComponent(query)}&max_results=${maxResults}&sortBy=submittedDate&sortOrder=descending`
-  );
-  
-  const text = await response.text();
-  const parser = new DOMParser();
-  const xml = parser.parseFromString(text, 'text/xml');
-  
-  const entries = xml.querySelectorAll('entry');
-  const results: SearchResult[] = [];
-  
-  entries.forEach((entry, index) => {
-    const id = entry.querySelector('id')?.textContent || `arxiv-${index}`;
-    const title = entry.querySelector('title')?.textContent?.replace(/\n/g, ' ') || '';
-    const summary = entry.querySelector('summary')?.textContent?.replace(/\n/g, ' ') || '';
-    const published = entry.querySelector('published')?.textContent?.split('T')[0] || '';
-    const link = entry.querySelector('link[title="pdf"]')?.getAttribute('href') || '';
-    
-    const authors: string[] = [];
-    entry.querySelectorAll('author > name').forEach(author => {
-      authors.push(author.textContent || '');
-    });
-    
-    const categories: string[] = [];
-    entry.querySelectorAll('category').forEach(cat => {
-      const term = cat.getAttribute('term');
-      if (term) categories.push(term);
-    });
-    
-    results.push({
-      id,
-      title,
-      authors,
-      abstract: summary,
-      source: 'arxiv',
-      url: link,
-      publishedDate: published,
-      tags: categories
-    });
-  });
-  
-  return results;
-}
-
-// DBLP API
-export async function searchDBLP(query: string, _maxResults = 10): Promise<SearchResult[]> {
+// 统一搜索接口
+export async function searchPapers(query: string, source: 'all' | 'arxiv' | 'dblp' | 'semantic' | 'pubmed' = 'all', limit = 10): Promise<SearchResult[]> {
   try {
-    const response = await fetch(
-      `https://dblp.org/search/publ/api?q=${encodeURIComponent(query)}&h=10&format=json`
-    );
+    const response = await fetch(`${SEARCH_API}/search?q=${encodeURIComponent(query)}&source=${source}&limit=${limit}`);
     const data = await response.json();
-    
-    return (data.result?.hits?.hit || []).map((hit: Record<string, unknown>, index: number) => ({
-      id: `dblp-${index}`,
-      title: (hit.info as Record<string, unknown>)?.title as string || '',
-      authors: ((hit.info as Record<string, unknown>)?.authors as Record<string, unknown>)?.author ? 
-        ((hit.info as Record<string, unknown>).authors as Record<string, unknown>[]).map((a: Record<string, unknown>) => a.text as string) : [],
-      abstract: '',
-      source: 'dblp' as const,
-      url: (hit.info as Record<string, unknown>)?.url as string || '',
-      publishedDate: (hit.info as Record<string, unknown>)?.year as string || '',
-      tags: (hit.info as Record<string, unknown>)?.venue ? [(hit.info as Record<string, unknown>).venue as string] : []
-    }));
-  } catch {
+    return data.results || [];
+  } catch (error) {
+    console.error('Search failed:', error);
     return [];
   }
 }
 
-// Mock functions for other sources
+// 各源搜索 (调用统一接口)
+export const searchArxiv = (query: string, maxResults = 10) => searchPapers(query, 'arxiv', maxResults);
+export const searchDBLP = (query: string, maxResults = 10) => searchPapers(query, 'dblp', maxResults);
+export const searchSemanticScholar = (query: string, maxResults = 10) => searchPapers(query, 'semantic', maxResults);
+export const searchPubMed = (query: string, maxResults = 10) => searchPapers(query, 'pubmed', maxResults);
+
+// 本地搜索 (使用 searchPapers)
 export async function searchGoogleScholar(_query: string): Promise<SearchResult[]> {
-  return [];
+  return searchPapers(_query, 'all', 5);
 }
 
 export async function searchIEEE(_query: string): Promise<SearchResult[]> {
@@ -94,26 +49,16 @@ export async function searchACM(_query: string): Promise<SearchResult[]> {
   return [];
 }
 
-// Unified search
+// 统一搜索
 export async function searchAll(query: string, sources: string[] = ['arxiv', 'dblp']): Promise<SearchResult[]> {
   const results: SearchResult[] = [];
   
-  const sourceMap: Record<string, () => Promise<SearchResult[]>> = {
-    arxiv: () => searchArxiv(query),
-    scholar: () => searchGoogleScholar(query),
-    dblp: () => searchDBLP(query),
-    ieee: () => searchIEEE(query),
-    acm: () => searchACM(query),
-  };
+  for (const source of sources) {
+    const r = await searchPapers(query, source as any, 10);
+    results.push(...r);
+  }
   
-  const promises = sources.map(source => sourceMap[source]?.() || Promise.resolve([]));
-  const allResults = await Promise.all(promises);
-  
-  allResults.forEach(r => results.push(...r));
-  
-  return results.sort((a, b) => 
-    new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime()
-  );
+  return results;
 }
 
 export default {
@@ -122,5 +67,6 @@ export default {
   searchDBLP,
   searchIEEE,
   searchACM,
-  searchAll
+  searchAll,
+  searchPapers,
 };
