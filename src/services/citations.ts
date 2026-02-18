@@ -186,7 +186,7 @@ function formatAPALocal(ref: Partial<DoiMetadata>): string {
 
 function formatIEEELocal(ref: Partial<DoiMetadata>): string {
   const authors = ref.authors?.length 
-    ? ref.authors.map((name, i) => {
+    ? ref.authors.map((name) => {
         const parts = name.split(' ');
         return parts.length > 1 
           ? `${parts.slice(0, -1).map(p => p[0] + '.').join(' ')} ${parts[parts.length - 1]}`

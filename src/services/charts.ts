@@ -92,7 +92,7 @@ export async function getReusableCharts(): Promise<Chart[]> {
 export async function uploadImage(
   file: File,
   folder: string = 'charts',
-  onProgress?: (progress: number) => void
+  _onProgress?: (progress: number) => void
 ): Promise<{ url: string; key: string } | null> {
   try {
     const formData = new FormData();

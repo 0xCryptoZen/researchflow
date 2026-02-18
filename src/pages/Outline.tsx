@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { STORAGE_KEYS } from '../constants/storage';
 import { readJSON, writeJSON } from '../services/storage';
+import { papersRepository, type SavedPaper } from '../repositories/papersRepository';
+import { llmService, mockLLMService } from '../services/llm';
 
 interface OutlineSection {
   id: string;
@@ -63,6 +65,12 @@ export default function Outline() {
   const [showNewModal, setShowNewModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('standard');
+  const [showAIModal, setShowAIModal] = useState(false);
+
+  // Get favorite papers for AI outline generation
+  const getFavoritePapers = (): SavedPaper[] => {
+    return papersRepository.getFavorites();
+  };
 
   useEffect(() => {
     writeJSON(STORAGE_KEYS.OUTLINES, outlines);
@@ -151,6 +159,13 @@ export default function Outline() {
           <p className="text-gray-600 mt-1">管理和生成论文大纲</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowAIModal(true)}
+            className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+            title="AI 辅助生成大纲"
+          >
+            <span>🤖</span> AI 辅助
+          </button>
           <button
             onClick={() => setShowTemplateModal(true)}
             className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
@@ -280,6 +295,32 @@ export default function Outline() {
           onClose={() => setShowTemplateModal(false)}
         />
       )}
+
+      {/* AI 生成大纲弹窗 */}
+      {showAIModal && (
+        <AIGenerateModal
+          favoritePapers={getFavoritePapers()}
+          onGenerate={(title, conference, _templateKey, sections) => {
+            const newOutline: Outline = {
+              id: Date.now().toString(),
+              title,
+              conference,
+              sections: sections.map((section, index) => ({
+                id: `${Date.now()}-${index}`,
+                title: section,
+                content: '',
+                status: 'pending' as const,
+              })),
+              createdAt: new Date().toISOString().split('T')[0],
+              updatedAt: new Date().toISOString().split('T')[0],
+            };
+            setOutlines([newOutline, ...outlines]);
+            setSelectedOutline(newOutline);
+            setShowAIModal(false);
+          }}
+          onClose={() => setShowAIModal(false)}
+        />
+      )}
     </div>
   );
 }
@@ -382,6 +423,176 @@ function TemplateModal({
             确认并创建
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AIGenerateModal({
+  favoritePapers,
+  onGenerate,
+  onClose,
+}: {
+  favoritePapers: SavedPaper[];
+  onGenerate: (title: string, conference: string, templateKey: string, sections: string[]) => void;
+  onClose: () => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [conference, setConference] = useState('');
+  const [templateKey, setTemplateKey] = useState<string>('standard');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedSections, setGeneratedSections] = useState<string[]>([]);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [error, setError] = useState<string>('');
+
+  const handleGenerate = async () => {
+    setIsGenerating(true);
+    setError('');
+    try {
+      if (llmService.isConfigured()) {
+        const result = await llmService.generateOutlineFromPapers(
+          favoritePapers,
+          conference,
+          templateKey as 'standard' | 'security' | 'ai' | 'short'
+        );
+        setGeneratedSections(result.sections || []);
+        setSuggestions(result.suggestions || []);
+      } else {
+        // Use mock service for demo
+        const result = await mockLLMService.generateOutlineFromPapers(
+          favoritePapers,
+          conference,
+          templateKey as 'standard' | 'security' | 'ai' | 'short'
+        );
+        setGeneratedSections(result.sections || []);
+        setSuggestions(result.suggestions || []);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '生成失败');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleConfirm = () => {
+    if (title && conference && generatedSections.length > 0) {
+      onGenerate(title, conference, templateKey, generatedSections);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+        <h2 className="text-xl font-bold mb-4">🤖 AI 生成大纲</h2>
+        
+        {favoritePapers.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p className="text-4xl mb-4">📚</p>
+            <p>暂无收藏论文</p>
+            <p className="text-sm mt-2">请先收藏一些论文，AI 将基于这些论文生成大纲建议</p>
+          </div>
+        ) : (
+          <>
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                将基于 {favoritePapers.length} 篇收藏论文生成大纲建议
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">论文标题</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  placeholder="输入论文标题"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">目标会议/期刊</label>
+                <input
+                  type="text"
+                  value={conference}
+                  onChange={(e) => setConference(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  placeholder="如: IEEE S&P, NDSS, CVPR"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">基础模板</label>
+                <select
+                  value={templateKey}
+                  onChange={(e) => setTemplateKey(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg"
+                >
+                  <option value="standard">标准学术论文结构</option>
+                  <option value="security">安全/区块链论文结构</option>
+                  <option value="ai">AI/ML 论文结构</option>
+                  <option value="short">短论文结构</option>
+                </select>
+              </div>
+
+              {error && (
+                <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              {generatedSections.length > 0 && (
+                <div className="mt-4 p-4 bg-green-50 rounded-lg">
+                  <h3 className="font-medium text-green-800 mb-2">生成的章节结构</h3>
+                  <ul className="space-y-1">
+                    {generatedSections.map((section, index) => (
+                      <li key={index} className="text-sm text-green-700 flex items-center gap-2">
+                        <span>{index + 1}.</span> {section}
+                      </li>
+                    ))}
+                  </ul>
+                  {suggestions.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-green-200">
+                      <h4 className="text-sm font-medium text-green-800 mb-1">写作建议</h4>
+                      <ul className="text-sm text-green-700 space-y-1">
+                        {suggestions.map((suggestion, index) => (
+                          <li key={index}>• {suggestion}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">
+                取消
+              </button>
+              {!generatedSections.length ? (
+                <button
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !title || !conference}
+                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isGenerating ? (
+                    <>生成中...</>
+                  ) : (
+                    <>
+                      <span>✨</span> 生成大纲
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={handleConfirm}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  使用此大纲
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
