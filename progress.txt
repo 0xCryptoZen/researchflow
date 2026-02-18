@@ -202,3 +202,71 @@
 - **Learnings:**
   - Repository 层统一云端同步入口，便于后续扩展
   - 本地优先架构：所有操作先写本地，有云端时自动同步
+
+---
+
+## 2026-02-18 10:30 - P0 核心架构完成
+- 完成 P0-1 Cloudflare Workers OAuth + D1 基础架构
+- 完成 P0-2 数据同步能力（增量同步、Repository 云端模式）
+- 完成 P0-3 存储层统一（5个新仓储）
+- Files changed:
+  - worker/ (Cloudflare Workers 后端)
+  - src/repositories/*.ts (仓储层)
+  - src/services/storage.ts (存储服务)
+- **Learnings:**
+  - Repository 模式为未来云同步打下基础
+  - 离线缓存使用 IndexedDB 实现
+
+## 2026-02-18 10:45 - P1 论文来源扩展
+- 完成 P1-1 Google Scholar/IEEE/ACM 搜索
+- 创建统一搜索 API 端点
+- Files changed:
+  - src/services/papers.ts
+  - src/pages/Papers.tsx
+  - worker/src/index.ts
+- **Learnings:**
+  - 各学术数据库 API 格式差异大，需要适配器模式
+
+## 2026-02-18 11:00 - P1-2 会议自动更新
+- 抓取会议官网 deadline 服务
+- 实现 N 天规则化提醒（7天/3天/1天）
+- Files changed:
+  - src/services/conferences.ts
+  - src/pages/Conferences.tsx
+- **Learnings:**
+  - 会议官网结构多样，需要针对每个会议单独适配
+
+## 2026-02-18 11:15 - P2 提醒系统 + LaTeX 模板
+- 多渠道通知服务（邮件/飞书/Telegram）
+- LaTeX 模板预览/下载
+- 内置 IEEE/ACM/arXiv 模板
+- Files changed:
+  - src/services/notifications.ts
+  - src/pages/Reminders.tsx
+- **Learnings:**
+  - 通知渠道多样化提升用户体验
+
+---
+
+## 当前用户故事状态
+
+| ID | 名称 | 状态 |
+|----|------|------|
+| US-001 | 用户注册与登录 | partial |
+| US-002 | 研究领域选择 | completed |
+| US-003 | 论文来源集成 | partial |
+| US-004 | 论文收藏与管理 | completed |
+| US-005 | 每日论文推荐 | not_started |
+| US-006 | 会议截稿倒计时 | partial |
+| US-007 | 任务/待办管理 | partial |
+| US-008 | 提醒系统 | partial |
+| US-009 | LaTeX 模板库 | partial |
+| US-010 | 论文大纲生成 | partial |
+| US-011 | 参考文献管理 | partial |
+| US-012 | 图表管理 | not_started |
+| US-013 | 投稿进度追踪 | completed |
+| US-014 | 写作进度提醒 | partial |
+| US-015 | 首页仪表盘 | completed |
+| US-016 | 数据同步 | partial |
+
+完成: 4 | 进行中: 10 | 未开始: 2
