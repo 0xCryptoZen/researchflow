@@ -2,6 +2,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { type Task, tasksRepository } from '../repositories/tasksRepository';
 import { papersRepository } from '../repositories/papersRepository';
 import { conferencesRepository } from '../repositories/conferencesRepository';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // --- Constants ---
 
@@ -27,15 +32,15 @@ const PRIORITY_OPTIONS: { value: Task['priority']; label: string }[] = [
 ];
 
 const PRIORITY_COLORS: Record<string, string> = {
-  high: 'bg-red-100 text-red-700 border-red-200',
-  medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  low: 'bg-green-100 text-green-700 border-green-200',
+  high: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-100 dark:border-red-800',
+  medium: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-100 dark:border-yellow-800',
+  low: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-800',
 };
 
 const STATUS_COLORS: Record<Task['status'], string> = {
-  completed: 'bg-slate-100 text-slate-500',
-  'in-progress': 'bg-blue-100 text-blue-700',
-  todo: 'bg-slate-100 text-slate-600',
+  completed: 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
+  'in-progress': 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-100',
+  todo: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
 };
 
 const PRIORITY_ORDER: Record<Task['priority'], number> = { high: 0, medium: 1, low: 2 };
@@ -69,15 +74,14 @@ function TaskFilters({ filter, onFilterChange }: {
   return (
     <div className="flex gap-2">
       {FILTERS.map(f => (
-        <button
+        <Button
           key={f}
+          variant={filter === f ? 'default' : 'outline'}
+          size="sm"
           onClick={() => onFilterChange(f)}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            filter === f ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
         >
           {FILTER_LABELS[f]}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -93,72 +97,80 @@ function TaskForm({ form, papers, conferences, isEditing, onChange, onSubmit, on
   onCancel: () => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
+    <Card className="p-4">
       <h3 className="font-semibold mb-3">{isEditing ? '编辑任务' : '添加新任务'}</h3>
       <div className="space-y-3">
-        <input
-          type="text"
+        <Input
           placeholder="任务标题"
           value={form.title}
           onChange={e => onChange({ title: e.target.value })}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg"
         />
-        <textarea
+        <Textarea
           placeholder="任务描述（可选）"
           value={form.description}
           onChange={e => onChange({ description: e.target.value })}
-          className="w-full px-3 py-2 border border-slate-300 rounded-lg"
           rows={2}
         />
         <div className="grid grid-cols-2 gap-3">
-          <select
+          <Select
             value={form.priority}
-            onChange={e => onChange({ priority: e.target.value as Task['priority'] })}
-            className="px-3 py-2 border border-slate-300 rounded-lg"
+            onValueChange={(value) => onChange({ priority: value as Task['priority'] })}
           >
-            {PRIORITY_OPTIONS.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <input
+            <SelectTrigger>
+              <SelectValue placeholder="选择优先级" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITY_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
             type="date"
             value={form.dueDate}
             onChange={e => onChange({ dueDate: e.target.value })}
-            className="px-3 py-2 border border-slate-300 rounded-lg"
           />
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <select
+          <Select
             value={form.relatedPaperId}
-            onChange={e => onChange({ relatedPaperId: e.target.value })}
-            className="px-3 py-2 border border-slate-300 rounded-lg"
+            onValueChange={(value) => onChange({ relatedPaperId: value })}
           >
-            <option value="">关联论文（可选）</option>
-            {papers.map(p => (
-              <option key={p.id} value={p.id}>{p.title.substring(0, 30)}...</option>
-            ))}
-          </select>
-          <select
+            <SelectTrigger>
+              <SelectValue placeholder="关联论文（可选）" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">无</SelectItem>
+              {papers.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.title.substring(0, 30)}...</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
             value={form.relatedConferenceId}
-            onChange={e => onChange({ relatedConferenceId: e.target.value })}
-            className="px-3 py-2 border border-slate-300 rounded-lg"
+            onValueChange={(value) => onChange({ relatedConferenceId: value })}
           >
-            <option value="">关联会议（可选）</option>
-            {conferences.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+            <SelectTrigger>
+              <SelectValue placeholder="关联会议（可选）" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">无</SelectItem>
+              {conferences.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex gap-2">
-          <button onClick={onSubmit} className="px-4 py-2 bg-blue-600 text-white rounded-lg">
+          <Button onClick={onSubmit}>
             {isEditing ? '保存' : '添加'}
-          </button>
-          <button onClick={onCancel} className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg">
+          </Button>
+          <Button variant="outline" onClick={onCancel}>
             取消
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -172,12 +184,14 @@ function TaskCard({ task, paperTitle, conferenceName, onToggleComplete, onStartT
   onDelete: () => void;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-4">
+    <Card className="p-4">
       <div className="flex items-start gap-3">
         <button
           onClick={onToggleComplete}
-          className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm ${
-            task.status === 'completed' ? 'bg-green-500 border-green-500 text-white' : 'border-slate-300 hover:border-green-500'
+          className={`mt-1 w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm transition-colors ${
+            task.status === 'completed' 
+              ? 'bg-green-500 border-green-500 text-white' 
+              : 'border-slate-300 hover:border-green-500 dark:border-slate-600'
           }`}
         >
           {task.status === 'completed' && '✓'}
@@ -185,7 +199,7 @@ function TaskCard({ task, paperTitle, conferenceName, onToggleComplete, onStartT
 
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className={`px-2 py-0.5 rounded text-xs font-medium border ${PRIORITY_COLORS[task.priority] ?? 'bg-slate-100 text-slate-700 border-slate-200'}`}>
+            <span className={`px-2 py-0.5 rounded text-xs font-medium border ${PRIORITY_COLORS[task.priority] ?? 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300'}`}>
               {PRIORITY_LABELS[task.priority]}
             </span>
             <span className={`px-2 py-0.5 rounded text-xs ${STATUS_COLORS[task.status]}`}>
@@ -193,37 +207,37 @@ function TaskCard({ task, paperTitle, conferenceName, onToggleComplete, onStartT
             </span>
           </div>
 
-          <h3 className={`font-medium ${task.status === 'completed' ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
+          <h3 className={`font-medium ${task.status === 'completed' ? 'text-slate-400 line-through' : 'text-foreground'}`}>
             {task.title}
           </h3>
 
-          {task.description && <p className="text-sm text-slate-500 mt-1">{task.description}</p>}
+          {task.description && <p className="text-sm text-muted-foreground mt-1">{task.description}</p>}
 
           <div className="flex gap-3 mt-2">
             {task.relatedPaperId && paperTitle && (
-              <a href={`/papers?paper=${task.relatedPaperId}`} className="text-xs text-blue-600 hover:underline">
+              <a href={`/papers?paper=${task.relatedPaperId}`} className="text-xs text-blue-600 hover:underline dark:text-blue-400">
                 📄 {paperTitle.substring(0, 25)}...
               </a>
             )}
             {task.relatedConferenceId && conferenceName && (
-              <a href={`/conferences?conf=${task.relatedConferenceId}`} className="text-xs text-purple-600 hover:underline">
+              <a href={`/conferences?conf=${task.relatedConferenceId}`} className="text-xs text-purple-600 hover:underline dark:text-purple-400">
                 📅 {conferenceName}
               </a>
             )}
           </div>
 
-          {task.dueDate && <p className="text-sm text-slate-500 mt-2">截止: {task.dueDate}</p>}
+          {task.dueDate && <p className="text-sm text-muted-foreground mt-2">截止: {task.dueDate}</p>}
         </div>
 
         <div className="flex gap-1">
           {task.status !== 'completed' && task.status !== 'in-progress' && (
-            <button onClick={onStartTask} className="p-2 text-slate-400 hover:text-blue-500" title="开始任务">▶</button>
+            <Button variant="ghost" size="icon" onClick={onStartTask} title="开始任务">▶</Button>
           )}
-          <button onClick={onEdit} className="p-2 text-slate-400 hover:text-blue-500" title="编辑">✏️</button>
-          <button onClick={onDelete} className="p-2 text-slate-400 hover:text-red-500">🗑</button>
+          <Button variant="ghost" size="icon" onClick={onEdit} title="编辑">✏️</Button>
+          <Button variant="ghost" size="icon" onClick={onDelete} title="删除">🗑</Button>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -255,7 +269,7 @@ export default function Tasks() {
     } catch {
       return [];
     }
-  }, [tasks]); // refresh when tasks change (add/edit may trigger)
+  }, [tasks]);
 
   const conferences = useMemo(() => {
     try {
@@ -357,24 +371,23 @@ export default function Tasks() {
     <div className="space-y-6">
       {/* Error banner */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex justify-between items-center">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex justify-between items-center dark:bg-red-900 dark:text-red-100 dark:border-red-800">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 font-bold">×</button>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)}>×</Button>
         </div>
       )}
 
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">任务管理</h1>
-          <p className="text-slate-600">{tasks.length} 个任务 · {completedCount} 已完成</p>
+          <h1 className="text-2xl font-bold">任务管理</h1>
+          <p className="text-muted-foreground">{tasks.length} 个任务 · {completedCount} 已完成</p>
         </div>
-        <button
+        <Button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
         >
           + 添加任务
-        </button>
+        </Button>
       </div>
 
       <TaskFilters filter={filter} onFilterChange={setFilter} />
@@ -394,7 +407,7 @@ export default function Tasks() {
       {/* Tasks List */}
       <div className="space-y-3">
         {sortedTasks.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">暂无任务</div>
+          <div className="text-center py-12 text-muted-foreground">暂无任务</div>
         ) : (
           sortedTasks.map(task => (
             <TaskCard

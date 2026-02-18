@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Home() {
   const [papersCount, setPapersCount] = useState(0);
@@ -83,18 +85,12 @@ export default function Home() {
 
           {/* 按钮 */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
-            <Link
-              to="/papers"
-              className="px-8 py-3.5 bg-gradient-to-r from-[#8B5A2B] to-[#A67C52] text-white rounded-xl font-medium hover:shadow-lg hover:shadow-[#8B5A2B]/20 transition-all"
-            >
-              开始使用 →
-            </Link>
-            <Link
-              to="/pricing"
-              className="px-8 py-3.5 bg-white text-[#8B5A2B] border-2 border-[#E8DFD5] rounded-xl font-medium hover:border-[#8B5A2B] hover:bg-[#FAF6F1] transition-all"
-            >
-              了解专业版
-            </Link>
+            <Button asChild className="px-8 py-3.5">
+              <Link to="/papers">开始使用 →</Link>
+            </Button>
+            <Button asChild variant="outline" className="px-8 py-3.5">
+              <Link to="/pricing">了解专业版</Link>
+            </Button>
           </div>
 
           {/* Stats */}
@@ -119,21 +115,21 @@ export default function Home() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
           {features.map((feature, idx) => (
-            <Link
-              key={idx}
-              to={feature.link}
-              className="group bg-white rounded-2xl p-6 border border-[#E8DFD5] hover:border-[#8B5A2B]/30 hover:shadow-xl hover:shadow-[#8B5A2B]/5 transition-all duration-300"
-            >
-              <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform`}>
-                {feature.icon}
-              </div>
-              <h3 className="font-serif text-lg text-[#2C1810] mb-2 group-hover:text-[#8B5A2B] transition-colors">
-                {feature.title}
-              </h3>
-              <p className="text-sm text-[#6B5344] leading-relaxed">
-                {feature.desc}
-              </p>
-            </Link>
+            <Card key={idx} className="group p-6 border-[#E8DFD5] hover:border-[#8B5A2B]/30 hover:shadow-xl hover:shadow-[#8B5A2B]/5 transition-all duration-300 cursor-pointer">
+              <CardContent className="p-0">
+                <Link to={feature.link} className="block">
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${feature.color} flex items-center justify-center text-3xl mb-4 group-hover:scale-110 transition-transform`}>
+                    {feature.icon}
+                  </div>
+                  <h3 className="font-serif text-lg text-[#2C1810] mb-2 group-hover:text-[#8B5A2B] transition-colors">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-[#6B5344] leading-relaxed">
+                    {feature.desc}
+                  </p>
+                </Link>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </section>
@@ -154,13 +150,12 @@ export default function Home() {
             添加论文、管理任务、查询数据，只需一句话。
           </p>
 
-          <Link
-            to="/pricing"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#8B5A2B] to-[#C4956A] text-white rounded-xl font-medium hover:shadow-lg transition-all"
-          >
-            升级专业版，解锁更多 AI 能力
-            <span>→</span>
-          </Link>
+          <Button asChild className="inline-flex items-center gap-2">
+            <Link to="/pricing">
+              升级专业版，解锁更多 AI 能力
+              <span>→</span>
+            </Link>
+          </Button>
         </div>
       </section>
 
