@@ -1,5 +1,5 @@
 // ResearchFlow Cloudflare Workers API
-// Handles: GitHub OAuth, D1 CRUD, Data Sync
+// Handles: GitHub OAuth, D1 CRUD, Data Sync, R2 Storage
 
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
@@ -11,6 +11,7 @@ type Bindings = {
   APP_URL: string
   GITHUB_CLIENT_ID: string
   GITHUB_CLIENT_SECRET: string
+  R2_BUCKET: R2Bucket
 }
 
 type User = {
@@ -500,6 +501,328 @@ app.get('/sync/export', async (c) => {
     conferences: conferences.results,
     exportedAt: new Date().toISOString(),
   })
+})
+
+// ==========================================
+// Storage Routes (P2-4.1 - R2 Image Upload)
+// ==========================================
+
+// Upload image to R2
+app.post('/storage/upload', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const contentType = c.req.header('Content-Type') || 'image/png'
+  const fileName = c.req.query('filename') || `${generateId()}.png`
+  const folder = c.req.query('folder') || 'charts'
+  
+  // Validate content type
+  const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml']
+  if (!allowedTypes.includes(contentType)) {
+    return c.json({ error: 'Invalid content type. Allowed: ' + allowedTypes.join(', ') }, 400)
+  }
+  
+  try {
+    const arrayBuffer = await c.req.arrayBuffer()
+    const buffer = new Uint8Array(arrayBuffer)
+    
+    // Max 10MB
+    if (buffer.length > 10 * 1024 * 1024) {
+      return c.json({ error: 'File too large. Max 10MB' }, 400)
+    }
+    
+    const key = `${user.id}/${folder}/${fileName}`
+    
+    // Check if R2 bucket is available
+    if (!c.env.R2_BUCKET) {
+      // Return mock URL for development
+      const mockUrl = `https://mock-r2.example.com/${key}`
+      return c.json({ 
+        url: mockUrl, 
+        key,
+        message: 'R2 not configured, using mock URL' 
+      })
+    }
+    
+    await c.env.R2_BUCKET.put(key, buffer, {
+      httpMetadata: {
+        contentType,
+      },
+      customMetadata: {
+        userId: user.id,
+        uploadedAt: new Date().toISOString(),
+      },
+    })
+    
+    // Generate public URL (assuming R2 is configured with public domain)
+    const publicUrl = `/storage/${key}`
+    
+    return c.json({ 
+      url: publicUrl, 
+      key,
+      size: buffer.length,
+    })
+  } catch (error) {
+    console.error('Upload error:', error)
+    return c.json({ error: 'Upload failed', details: String(error) }, 500)
+  }
+})
+
+// Get image from R2
+app.get('/storage/:key(*)', async (c) => {
+  const key = c.req.param('key')
+  
+  if (!c.env.R2_BUCKET) {
+    return c.json({ error: 'R2 not configured' }, 500)
+  }
+  
+  try {
+    const object = await c.env.R2_BUCKET.get(key)
+    
+    if (!object) {
+      return c.json({ error: 'Not found' }, 404)
+    }
+    
+    return new Response(object.body, {
+      headers: {
+        'Content-Type': object.httpMetadata?.contentType || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=31536000',
+      },
+    })
+  } catch (error) {
+    console.error('Get error:', error)
+    return c.json({ error: 'Failed to get file', details: String(error) }, 500)
+  }
+})
+
+// Delete image from R2
+app.delete('/storage/:key(*)', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const key = c.req.param('key')
+  
+  // Verify ownership
+  if (!key.startsWith(user.id)) {
+    return c.json({ error: 'Access denied' }, 403)
+  }
+  
+  if (!c.env.R2_BUCKET) {
+    return c.json({ message: 'R2 not configured, mock delete' })
+  }
+  
+  try {
+    await c.env.R2_BUCKET.delete(key)
+    return c.json({ message: 'Deleted successfully' })
+  } catch (error) {
+    console.error('Delete error:', error)
+    return c.json({ error: 'Delete failed', details: String(error) }, 500)
+  }
+})
+
+// ==========================================
+// Charts/Figures Management (P2-4)
+// ==========================================
+
+type Chart = {
+  id: string
+  user_id: string
+  name: string
+  description: string
+  image_url: string
+  image_key: string
+  type: string
+  tags: string
+  paper_id: string
+  created_at: string
+  updated_at: string
+}
+
+// Get all charts for user
+app.get('/charts', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const result = await c.env.DB.prepare(
+    'SELECT * FROM charts WHERE user_id = ? ORDER BY created_at DESC'
+  ).bind(user.id).all<Chart>()
+  
+  const charts = result.results.map(chart => ({
+    id: chart.id,
+    name: chart.name,
+    description: chart.description,
+    imageUrl: chart.image_url,
+    imageKey: chart.image_key,
+    type: chart.type,
+    tags: JSON.parse(chart.tags || '[]'),
+    paperId: chart.paper_id,
+    createdAt: chart.created_at,
+    updatedAt: chart.updated_at,
+  }))
+  
+  return c.json({ charts })
+})
+
+// Create chart
+app.post('/charts', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const body = await c.req.json()
+  const id = generateId()
+  const now = new Date().toISOString()
+  
+  await c.env.DB.prepare(
+    `INSERT INTO charts (id, user_id, name, description, image_url, image_key, type, tags, paper_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id, user.id, body.name, body.description || '', body.imageUrl || '', 
+    body.imageKey || '', body.type || 'image', JSON.stringify(body.tags || []),
+    body.paperId || '', now, now
+  ).run()
+  
+  return c.json({ id, message: 'Chart created' })
+})
+
+// Update chart
+app.put('/charts/:id', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const id = c.req.param('id')
+  const body = await c.req.json()
+  const now = new Date().toISOString()
+  
+  // Verify ownership
+  const existing = await c.env.DB.prepare(
+    'SELECT * FROM charts WHERE id = ? AND user_id = ?'
+  ).bind(id, user.id).first<Chart>()
+  
+  if (!existing) {
+    return c.json({ error: 'Chart not found' }, 404)
+  }
+  
+  await c.env.DB.prepare(
+    `UPDATE charts SET name = ?, description = ?, image_url = ?, image_key = ?, 
+     type = ?, tags = ?, paper_id = ?, updated_at = ? WHERE id = ?`
+  ).bind(
+    body.name, body.description || '', body.imageUrl || '', body.imageKey || '',
+    body.type || 'image', JSON.stringify(body.tags || []), body.paperId || '',
+    now, id
+  ).run()
+  
+  return c.json({ message: 'Chart updated' })
+})
+
+// Delete chart
+app.delete('/charts/:id', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const id = c.req.param('id')
+  
+  // Verify ownership and get image key
+  const existing = await c.env.DB.prepare(
+    'SELECT * FROM charts WHERE id = ? AND user_id = ?'
+  ).bind(id, user.id).first<Chart>()
+  
+  if (!existing) {
+    return c.json({ error: 'Chart not found' }, 404)
+  }
+  
+  // Delete from R2 if exists
+  if (c.env.R2_BUCKET && existing.image_key) {
+    try {
+      await c.env.R2_BUCKET.delete(existing.image_key)
+    } catch (e) {
+      console.error('R2 delete error:', e)
+    }
+  }
+  
+  await c.env.DB.prepare('DELETE FROM charts WHERE id = ?').bind(id).run()
+  
+  return c.json({ message: 'Chart deleted' })
+})
+
+// Get chart by ID
+app.get('/charts/:id', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const id = c.req.param('id')
+  
+  const chart = await c.env.DB.prepare(
+    'SELECT * FROM charts WHERE id = ? AND user_id = ?'
+  ).bind(id, user.id).first<Chart>()
+  
+  if (!chart) {
+    return c.json({ error: 'Chart not found' }, 404)
+  }
+  
+  return c.json({
+    id: chart.id,
+    name: chart.name,
+    description: chart.description,
+    imageUrl: chart.image_url,
+    imageKey: chart.image_key,
+    type: chart.type,
+    tags: JSON.parse(chart.tags || '[]'),
+    paperId: chart.paper_id,
+    createdAt: chart.created_at,
+    updatedAt: chart.updated_at,
+  })
+})
+
+// Get charts by paper ID (for cross-paper reuse - P2-4.2)
+app.get('/charts/paper/:paperId', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const paperId = c.req.param('paperId')
+  
+  const result = await c.env.DB.prepare(
+    'SELECT * FROM charts WHERE user_id = ? AND paper_id = ? ORDER BY created_at DESC'
+  ).bind(user.id, paperId).all<Chart>()
+  
+  const charts = result.results.map(chart => ({
+    id: chart.id,
+    name: chart.name,
+    description: chart.description,
+    imageUrl: chart.image_url,
+    imageKey: chart.image_key,
+    type: chart.type,
+    tags: JSON.parse(chart.tags || '[]'),
+    paperId: chart.paper_id,
+    createdAt: chart.created_at,
+    updatedAt: chart.updated_at,
+  }))
+  
+  return c.json({ charts })
+})
+
+// Get all reusable charts (not linked to any paper)
+app.get('/charts/reusable', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const result = await c.env.DB.prepare(
+    'SELECT * FROM charts WHERE user_id = ? AND (paper_id IS NULL OR paper_id = "") ORDER BY created_at DESC'
+  ).bind(user.id).all<Chart>()
+  
+  const charts = result.results.map(chart => ({
+    id: chart.id,
+    name: chart.name,
+    description: chart.description,
+    imageUrl: chart.image_url,
+    imageKey: chart.image_key,
+    type: chart.type,
+    tags: JSON.parse(chart.tags || '[]'),
+    paperId: chart.paper_id,
+    createdAt: chart.created_at,
+    updatedAt: chart.updated_at,
+  }))
+  
+  return c.json({ charts })
 })
 
 // ==========================================

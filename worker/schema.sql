@@ -107,9 +107,51 @@ CREATE TABLE IF NOT EXISTS sync_logs (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- 图表/图片表 (P2-4)
+CREATE TABLE IF NOT EXISTS charts (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT,
+  image_key TEXT,
+  type TEXT DEFAULT 'image',
+  tags TEXT DEFAULT '[]',
+  paper_id TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- 参考文献表
+CREATE TABLE IF NOT EXISTS references (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT DEFAULT 'article',
+  title TEXT NOT NULL,
+  authors TEXT DEFAULT '[]',
+  year INTEGER,
+  journal TEXT,
+  conference TEXT,
+  volume TEXT,
+  issue TEXT,
+  pages TEXT,
+  doi TEXT,
+  url TEXT,
+  abstract TEXT,
+  tags TEXT DEFAULT '[]',
+  notes TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
 -- 索引
 CREATE INDEX IF NOT EXISTS idx_papers_user ON papers(user_id);
 CREATE INDEX IF NOT EXISTS idx_tasks_user ON tasks(user_id);
 CREATE INDEX IF NOT EXISTS idx_conferences_user ON conferences(user_id);
 CREATE INDEX IF NOT EXISTS idx_submissions_user ON submissions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sync_logs_user ON sync_logs(user_id, synced_at);
+CREATE INDEX IF NOT EXISTS idx_charts_user ON charts(user_id);
+CREATE INDEX IF NOT EXISTS idx_charts_paper ON charts(paper_id);
+CREATE INDEX IF NOT EXISTS idx_references_user ON references(user_id);
