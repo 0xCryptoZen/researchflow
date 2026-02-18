@@ -1,4 +1,6 @@
 import { STORAGE_KEYS } from '../constants/storage';
+import { syncService } from '../services/sync';
+import { auth } from '../services/auth';
 import { createListRepository } from './localRepository';
 
 export interface Conference {
@@ -11,6 +13,7 @@ export interface Conference {
   conferenceDate?: string;
   website: string;
   category: string;
+  createdAt?: string;
 }
 
 const defaultConferences: Conference[] = [
@@ -26,6 +29,18 @@ const defaultConferences: Conference[] = [
 ];
 
 const repo = createListRepository<Conference>(STORAGE_KEYS.CONFERENCES, []);
+
+// Helper to sync to cloud when in cloud mode
+async function syncToCloud(action: 'create' | 'update' | 'delete', item?: Conference) {
+  const user = auth.getCurrentUser();
+  if (!user?.isCloudMode) return;
+  
+  try {
+    await syncService.pushChanges('conferences', action, item);
+  } catch (error) {
+    console.error('[Conferences Repo] Cloud sync failed:', error);
+  }
+}
 
 function getOrSeedConferences(): Conference[] {
   const items = repo.getAll();
@@ -43,18 +58,80 @@ export const conferencesRepository = {
     repo.saveAll(items);
   },
 
-  add(input: Pick<Conference, 'name' | 'shortName' | 'deadline' | 'category'>): void {
-    if (!input.name || !input.deadline) return;
+  getById(id: string): Conference | undefined {
+    return getOrSeedConferences().find((conf) => conf.id === id);
+  },
+
+  add(input: Pick<Conference, 'name' | 'shortName' | 'deadline' | 'category'> & { website?: string; notificationDate?: string; conferenceDate?: string }): Conference {
+    if (!input.name || !input.deadline) throw new Error('Name and deadline are required');
+    
     const conf: Conference = {
       id: Date.now().toString(),
-      ...input,
+      name: input.name,
+      shortName: input.shortName,
       year: new Date(input.deadline).getFullYear(),
-      website: '',
+      deadline: input.deadline,
+      category: input.category,
+      website: input.website || '',
+      notificationDate: input.notificationDate,
+      conferenceDate: input.conferenceDate,
+      createdAt: new Date().toISOString(),
     };
+    
     repo.saveAll([...getOrSeedConferences(), conf]);
+    
+    // Sync to cloud
+    syncToCloud('create', conf);
+    
+    return conf;
+  },
+
+  update(id: string, updates: Partial<Conference>): void {
+    repo.saveAll(
+      getOrSeedConferences().map((conf) =>
+        conf.id === id ? { ...conf, ...updates } : conf
+      )
+    );
+    
+    const updated = repo.getAll().find((c) => c.id === id);
+    if (updated) syncToCloud('update', updated);
   },
 
   deleteById(id: string): void {
     repo.saveAll(getOrSeedConferences().filter((conf) => conf.id !== id));
+    syncToCloud('delete', { id } as Conference);
+  },
+
+  getByCategory(category: string): Conference[] {
+    return getOrSeedConferences().filter((conf) => conf.category === category);
+  },
+
+  getUpcoming(days: number = 30): Conference[] {
+    const now = Date.now();
+    const future = now + days * 24 * 60 * 60 * 1000;
+    
+    return getOrSeedConferences().filter((conf) => {
+      const deadlineTime = new Date(conf.deadline).getTime();
+      return deadlineTime >= now && deadlineTime <= future;
+    }).sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime());
+  },
+
+  getByDeadline(deadline: string): Conference[] {
+    return getOrSeedConferences().filter((conf) => conf.deadline === deadline);
+  },
+
+  search(query: string): Conference[] {
+    const lowerQuery = query.toLowerCase();
+    return getOrSeedConferences().filter(
+      (conf) =>
+        conf.name.toLowerCase().includes(lowerQuery) ||
+        conf.shortName.toLowerCase().includes(lowerQuery) ||
+        conf.category.toLowerCase().includes(lowerQuery)
+    );
+  },
+
+  getAllCategories(): string[] {
+    const categories = getOrSeedConferences().map((conf) => conf.category);
+    return [...new Set(categories)];
   },
 };

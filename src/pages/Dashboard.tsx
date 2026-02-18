@@ -42,7 +42,7 @@ export default function Dashboard() {
         setSyncStatus(s => ({
           ...s,
           lastSync: status.lastSyncTime,
-          error: status.error,
+          error: status.error || null,
           isCloudMode: true,
         }));
       }).catch(err => {

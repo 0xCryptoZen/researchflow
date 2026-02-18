@@ -110,7 +110,7 @@ export const auth = {
   },
 
   // Handle OAuth callback - called after redirect
-  async handleOAuthCallback(userId: string): Promise<AuthUser> {
+  async handleOAuthCallback(_userId?: string): Promise<AuthUser> {
     try {
       // Try to get user from cloud
       const cloudUser = await apiRequest<{

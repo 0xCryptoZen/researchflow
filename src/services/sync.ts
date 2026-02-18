@@ -1,7 +1,7 @@
 // Cloud Sync Service - Synchronizes local storage with Cloudflare D1
 import { STORAGE_KEYS } from '../constants/storage';
 import { readJSON, writeJSON } from './storage';
-import { auth, AuthUser } from './auth';
+import { auth } from './auth';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8787';
 
