@@ -136,7 +136,37 @@
   - 通过 repository 层可把未来云同步改造集中到数据层
   - 优先仓储化高频核心模块，可最快降低维护复杂度
 
-## 2026-02-18 10:58 - P0-2/P0-3 仓储层改造
+## 2026-02-18 11:14 - P0-2.3 离线缓存支持
+- 新增 Service Worker (public/sw.ts) 实现静态资源缓存
+  - Cache-first 策略缓存静态资源
+  - 网络失败时返回缓存内容
+  - 支持后台更新缓存
+- 新增 IndexedDB 服务 (src/services/indexeddb.ts)
+  - 离线数据存储 (offline_data store)
+  - 操作队列存储 (operation_queue store)
+  - 元数据存储 (meta store)
+- 新增离线同步服务 (src/services/offline.ts)
+  - 网络状态监听 (online/offline 事件)
+  - 离线操作自动队列入库
+  - 网络恢复后自动同步队列
+- 新增 useOfflineStatus hook (src/hooks/useOfflineStatus.ts)
+  - 感知网络状态
+  - 感知待同步操作数量
+- 修改 vite.config.ts 支持 worker
+- 修改 index.html 注册 Service Worker
+- 修改 main.tsx 初始化离线服务
+- Files changed:
+  - public/sw.ts
+  - src/services/indexeddb.ts
+  - src/services/offline.ts
+  - src/hooks/useOfflineStatus.ts
+  - vite.config.ts
+  - index.html
+  - src/main.tsx
+- **Learnings:**
+  - Service Worker 需要独立编译，dist 目录需要 .js 后缀
+  - IndexedDB 是异步的，需要用 Promise 封装
+  - 离线操作队列是本地优先架构的关键
 - P0-2.1: 增量同步 API (已在 worker 中实现)
 - P0-2.2: 改造 Repository 层支持云端模式
   - papersRepository/tasksRepository/conferencesRepository/submissionsRepository
