@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   WRITING_PROGRESS: 'researchflow_writing_progress',
   DB: 'researchflow_db',
   SYNC_STATUS: 'researchflow_sync_status',
+  LAST_SYNC: 'researchflow_last_sync',
 } as const;
 
 const LEGACY_STORAGE_KEY_MAP: Record<string, string[]> = {

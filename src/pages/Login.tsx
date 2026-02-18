@@ -1,28 +1,65 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { STORAGE_KEYS } from '../constants/storage';
-import { writeJSON } from '../services/storage';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import auth from '../services/auth';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
-
-  const handleGitHubLogin = () => {
+  const [error, setError] = useState<string | null>(null);
+  
+  // Handle OAuth callback
+  useEffect(() => {
+    const userId = searchParams.get('userId');
+    if (userId) {
+      handleOAuthCallback(userId);
+    }
+  }, [searchParams]);
+  
+  const handleOAuthCallback = async (userId: string) => {
     setIsLoading(true);
-    // Simulate GitHub OAuth - in production, redirect to GitHub OAuth
-    setTimeout(() => {
-      // Store mock user data
-      writeJSON(STORAGE_KEYS.USER, {
-        id: '1',
-        githubId: '0xCryptoZen',
-        name: '0xCryptoZen',
-        avatar: 'https://avatars.githubusercontent.com/u/49605145',
-        researchFields: [],
-        targetConferences: []
-      });
-      setIsLoading(false);
+    setError(null);
+    
+    try {
+      await auth.handleOAuthCallback(userId);
       navigate('/');
-    }, 1000);
+    } catch (err) {
+      console.error('OAuth callback error:', err);
+      setError('登录失败，请重试');
+      setIsLoading(false);
+    }
+  };
+
+  const handleGitHubLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await auth.loginWithGitHub();
+      // If we're in dev mode (cloud not available), this returns directly
+      // Otherwise it should redirect
+      if (auth.getCurrentUser()) {
+        navigate('/');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('登录失败，请重试');
+      setIsLoading(false);
+    }
+  };
+  
+  // For local development without cloud
+  const handleLocalLogin = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      await auth.localLogin();
+      navigate('/');
+    } catch (err) {
+      setError('本地登录失败');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -43,6 +80,13 @@ export default function Login() {
           <p className="text-slate-600 text-center mb-8">
             登录您的账户，开始管理您的科研论文
           </p>
+          
+          {/* Error message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
           {/* GitHub Login Button */}
           <button
@@ -73,15 +117,16 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Email Login */}
+          {/* Local Dev Login */}
           <button
-            onClick={() => alert('邮箱登录开发中...')}
+            onClick={handleLocalLogin}
+            disabled={isLoading}
             className="w-full flex items-center justify-center gap-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-medium py-3 px-4 rounded-lg transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
             </svg>
-            使用邮箱登录
+            本地开发模式
           </button>
         </div>
 

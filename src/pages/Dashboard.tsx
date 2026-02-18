@@ -5,13 +5,14 @@ import { tasksRepository } from '../repositories/tasksRepository';
 import { conferencesRepository } from '../repositories/conferencesRepository';
 import { submissionsRepository } from '../repositories/submissionsRepository';
 import { STORAGE_UPDATED_EVENT } from '../services/storage';
-
-const SYNC_STATUS_KEY = 'researchflow_sync_status';
+import { syncService } from '../services/sync';
+import { auth } from '../services/auth';
 
 interface SyncStatus {
   lastSync: string | null;
   pending: boolean;
   error: string | null;
+  isCloudMode: boolean;
 }
 
 export default function Dashboard() {
@@ -19,10 +20,15 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [conferences, setConferences] = useState<any[]>([]);
   const [submissions, setSubmissions] = useState<any[]>([]);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>(() => {
-    const saved = localStorage.getItem(SYNC_STATUS_KEY);
-    return saved ? JSON.parse(saved) : { lastSync: null, pending: false, error: null };
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>({
+    lastSync: null,
+    pending: false,
+    error: null,
+    isCloudMode: false,
   });
+
+  const user = auth.getCurrentUser();
+  const isCloudMode = user?.isCloudMode === true;
 
   const loadDashboardData = useCallback(() => {
     setPapers(papersRepository.getAll());
@@ -30,9 +36,20 @@ export default function Dashboard() {
     setConferences(conferencesRepository.getAll());
     setSubmissions(submissionsRepository.getAll());
     
-    const saved = localStorage.getItem(SYNC_STATUS_KEY);
-    if (saved) setSyncStatus(JSON.parse(saved));
-  }, []);
+    // Load sync status
+    if (isCloudMode) {
+      syncService.getStatus().then(status => {
+        setSyncStatus(s => ({
+          ...s,
+          lastSync: status.lastSyncTime,
+          error: status.error,
+          isCloudMode: true,
+        }));
+      }).catch(err => {
+        setSyncStatus(s => ({ ...s, error: String(err), isCloudMode: true }));
+      });
+    }
+  }, [isCloudMode]);
 
   useEffect(() => {
     loadDashboardData();
@@ -48,6 +65,45 @@ export default function Dashboard() {
       window.removeEventListener('focus', handleFocus);
     };
   }, [loadDashboardData]);
+
+  const handleSync = async () => {
+    if (!isCloudMode) {
+      // Local mode - just simulate sync
+      setSyncStatus(s => ({ ...s, pending: true }));
+      setTimeout(() => {
+        setSyncStatus(s => ({
+          ...s,
+          lastSync: new Date().toISOString(),
+          pending: false,
+          error: null,
+          isCloudMode: false,
+        }));
+      }, 1000);
+      return;
+    }
+    
+    setSyncStatus(s => ({ ...s, pending: true, error: null }));
+    
+    try {
+      await syncService.fullSync();
+      const status = await syncService.getStatus();
+      setSyncStatus(s => ({
+        ...s,
+        lastSync: status.lastSyncTime,
+        pending: false,
+        error: null,
+        isCloudMode: true,
+      }));
+      // Reload data after sync
+      loadDashboardData();
+    } catch (err) {
+      setSyncStatus(s => ({
+        ...s,
+        pending: false,
+        error: String(err),
+      }));
+    }
+  };
 
   const upcomingTasks = tasks.filter(t => t.status !== 'completed').slice(0, 5);
   const recentPapers = papers.slice(0, 5);
@@ -84,8 +140,10 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           {syncStatus.pending ? (
             <span className="text-sm text-violet-600">🔄 同步中...</span>
+          ) : isCloudMode ? (
+            <span className="text-sm text-emerald-600">☁️ 云端同步</span>
           ) : syncStatus.lastSync ? (
-            <span className="text-sm text-emerald-600">✅ 数据已同步</span>
+            <span className="text-sm text-emerald-600">✅ 本地已同步</span>
           ) : (
             <span className="text-sm text-[#9A8677]">⚠️ 未同步</span>
           )}
@@ -94,15 +152,18 @@ export default function Dashboard() {
               上次: {new Date(syncStatus.lastSync).toLocaleString()}
             </span>
           )}
+          {syncStatus.error && (
+            <span className="text-xs text-red-500">
+              错误: {syncStatus.error}
+            </span>
+          )}
         </div>
         <button 
-          onClick={() => {
-            setSyncStatus(s => ({ ...s, pending: true }));
-            setTimeout(() => setSyncStatus({ lastSync: new Date().toISOString(), pending: false, error: null }), 1000);
-          }}
-          className="px-4 py-1.5 bg-gradient-to-r from-[#8B5A2B] to-[#A67C52] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity"
+          onClick={handleSync}
+          disabled={syncStatus.pending}
+          className="px-4 py-1.5 bg-gradient-to-r from-[#8B5A2B] to-[#A67C52] text-white rounded-lg text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          {syncStatus.pending ? '同步中...' : '立即同步'}
+          {syncStatus.pending ? '同步中...' : isCloudMode ? '云端同步' : '立即同步'}
         </button>
       </div>
 

@@ -1,0 +1,13 @@
+name = "researchflow-api"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "researchflow"
+database_id = "local"
+
+[vars]
+APP_URL = "http://localhost:5173"
+GITHUB_CLIENT_ID = ""
+GITHUB_CLIENT_SECRET = ""
