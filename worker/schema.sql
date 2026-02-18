@@ -155,3 +155,26 @@ CREATE INDEX IF NOT EXISTS idx_sync_logs_user ON sync_logs(user_id, synced_at);
 CREATE INDEX IF NOT EXISTS idx_charts_user ON charts(user_id);
 CREATE INDEX IF NOT EXISTS idx_charts_paper ON charts(paper_id);
 CREATE INDEX IF NOT EXISTS idx_references_user ON references(user_id);
+
+-- 定时任务表 (P3-1.2)
+CREATE TABLE IF NOT EXISTS scheduled_tasks (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  scheduled_for TEXT NOT NULL,
+  executed_at TEXT,
+  status TEXT DEFAULT 'pending',
+  result TEXT DEFAULT '{}',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- 用户研究领域表
+CREATE TABLE IF NOT EXISTS research_fields (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  keywords TEXT DEFAULT '[]',
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id)
+);

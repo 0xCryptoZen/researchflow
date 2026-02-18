@@ -1423,4 +1423,351 @@ async function searchDBLP(query: string, limit: number): Promise<any[]> {
   }
 }
 
+// ==========================================
+// Recommendation Routes (P3-1.1 - Paper Recommendation)
+// ==========================================
+
+// Get paper recommendations based on user's research fields
+app.get('/recommendations', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  // Get user's research fields
+  let researchFields: string[] = []
+  try {
+    researchFields = JSON.parse(user.research_fields || '[]')
+  } catch (e) {
+    researchFields = []
+  }
+  
+  if (!researchFields.length) {
+    // If no research fields set, use recent papers' keywords
+    const recentPapers = await c.env.DB.prepare(
+      'SELECT tags FROM papers WHERE user_id = ? ORDER BY added_at DESC LIMIT 10'
+    ).bind(user.id).all<{ tags: string }>()
+    
+    const allTags = recentPapers.results
+      .flatMap(p => JSON.parse(p.tags || '[]'))
+      .filter((t, i, arr) => arr.indexOf(t) === i)
+    
+    researchFields = allTags.slice(0, 5)
+  }
+  
+  if (!researchFields.length) {
+    return c.json({ 
+      recommendations: [], 
+      message: 'Set research fields or add paper tags to get recommendations' 
+    })
+  }
+  
+  // Search for papers in each field
+  const recommendations: any[] = []
+  const excludeIds = new Set<string>()
+  
+  // Get existing paper IDs to exclude
+  const existingPapers = await c.env.DB.prepare(
+    'SELECT url FROM papers WHERE user_id = ?'
+  ).bind(user.id).all<{ url: string }>()
+  
+  existingPapers.results.forEach(p => excludeIds.add(p.url))
+  
+  // Search for each field
+  for (const field of researchFields.slice(0, 3)) {
+    try {
+      // Search arXiv for recent papers in this field
+      const arxivResults = await searchArxiv(`${field} ${researchFields[0]}`, 5)
+      
+      for (const paper of arxivResults) {
+        if (!excludeIds.has(paper.url)) {
+          recommendations.push({
+            ...paper,
+            matchReason: `Matches your field: ${field}`,
+            relevanceScore: calculateRelevance(paper, field),
+          })
+          excludeIds.add(paper.url)
+        }
+      }
+      
+      // Search DBLP
+      const dblpResults = await searchDBLP(field, 5)
+      
+      for (const paper of dblpResults) {
+        if (!excludeIds.has(paper.url)) {
+          recommendations.push({
+            ...paper,
+            matchReason: `Matches your field: ${field}`,
+            relevanceScore: calculateRelevance(paper, field),
+          })
+          excludeIds.add(paper.url)
+        }
+      }
+    } catch (error) {
+      console.error(`Search error for field ${field}:`, error)
+    }
+  }
+  
+  // Sort by relevance score and return top recommendations
+  recommendations.sort((a, b) => b.relevanceScore - a.relevanceScore)
+  
+  return c.json({
+    recommendations: recommendations.slice(0, 20),
+    basedOn: researchFields,
+    count: recommendations.length,
+  })
+})
+
+// Get daily recommendations (curated)
+app.get('/recommendations/daily', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const limit = parseInt(c.req.query('limit') || '10')
+  
+  // Get popular/recent papers from various sources
+  const dailyPicks: any[] = []
+  
+  // 1. Recent arXiv papers in hot categories
+  const hotCategories = ['cs.AI', 'cs.LG', 'cs.CL', 'cs.CV', 'stat.ML']
+  const randomCategory = hotCategories[Math.floor(Math.random() * hotCategories.length)]
+  
+  try {
+    const arxivResponse = await fetch(
+      `https://export.arxiv.org/api/query?search_query=cat:${randomCategory}&sortBy=submittedDate&sortOrder=descending&max_results=${limit}`,
+      { headers: { 'Accept': 'application/xml' } }
+    )
+    
+    const text = await arxivResponse.text()
+    const parser = new DOMParser()
+    const xml = parser.parseFromString(text, 'text/xml')
+    const entries = xml.querySelectorAll('entry')
+    
+    Array.from(entries).forEach((entry, i) => {
+      dailyPicks.push({
+        id: `arxiv_daily_${i}`,
+        title: entry.querySelector('title')?.textContent || '',
+        authors: Array.from(entry.querySelectorAll('author name')).map(a => a.textContent || ''),
+        abstract: entry.querySelector('summary')?.textContent || '',
+        source: 'arxiv',
+        url: entry.querySelector('id')?.textContent || '',
+        pdfUrl: entry.querySelector('link[title="pdf"]')?.getAttribute('href') || '',
+        year: new Date(entry.querySelector('published')?.textContent || '').getFullYear(),
+        publishedDate: entry.querySelector('published')?.textContent || '',
+        categories: [randomCategory],
+        pickReason: `Hot in ${randomCategory}`,
+      })
+    })
+  } catch (error) {
+    console.error('Daily pick error:', error)
+  }
+  
+  // 2. Highly cited papers from DBLP
+  try {
+    const dblpResponse = await fetch(
+      `https://dblp.org/search/publ/api?q=deep+learning&h=${limit/2}&format=json`
+    )
+    
+    const data = await dblpResponse.json()
+    const hits = data.result?.hits?.hit || []
+    
+    hits.forEach((hit: any, i: number) => {
+      const info = hit.info
+      dailyPicks.push({
+        id: `dblp_popular_${i}`,
+        title: info.title || '',
+        authors: info.authors?.author?.map((a: any) => a.text) || [],
+        source: 'dblp',
+        url: info.url || '',
+        year: info.year ? parseInt(info.year) : undefined,
+        venue: info.venue || '',
+        citations: info.citationCount || 0,
+        pickReason: 'Highly cited',
+      })
+    })
+  } catch (error) {
+    console.error('Popular papers error:', error)
+  }
+  
+  // Shuffle and return
+  dailyPicks.sort(() => Math.random() - 0.5)
+  
+  return c.json({
+    date: new Date().toISOString().split('T')[0],
+    picks: dailyPicks.slice(0, limit),
+    count: dailyPicks.length,
+  })
+})
+
+// Save recommendation to papers
+app.post('/recommendations/save', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const body = await c.req.json()
+  const { paper } = body
+  
+  if (!paper || !paper.title) {
+    return c.json({ error: 'Paper data required' }, 400)
+  }
+  
+  const id = generateId()
+  const now = new Date().toISOString()
+  
+  await c.env.DB.prepare(
+    `INSERT INTO papers (id, user_id, title, authors, abstract, source, url, pdf_url, published_date, tags, notes, is_favorite, added_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  ).bind(
+    id, user.id, paper.title, JSON.stringify(paper.authors || []), paper.abstract || '',
+    paper.source || 'recommendation', paper.url || '', paper.pdfUrl || '', 
+    paper.publishedDate || paper.year?.toString() || '',
+    JSON.stringify(paper.categories || paper.tags || []), '', 0, now
+  ).run()
+  
+  return c.json({ id, message: 'Paper saved from recommendation' })
+})
+
+// Helper function to calculate relevance score
+function calculateRelevance(paper: any, field: string): number {
+  let score = 0
+  
+  // Title match
+  if (paper.title?.toLowerCase().includes(field.toLowerCase())) {
+    score += 10
+  }
+  
+  // Abstract match
+  if (paper.abstract?.toLowerCase().includes(field.toLowerCase())) {
+    score += 5
+  }
+  
+  // Recent papers get higher score
+  if (paper.year && paper.year >= new Date().getFullYear() - 2) {
+    score += 3
+  }
+  
+  // Has citations (for DBLP results)
+  if (paper.citations && paper.citations > 10) {
+    score += Math.min(paper.citations / 10, 5)
+  }
+  
+  return score
+}
+
+// ==========================================
+// Scheduled Tasks (P3-1.2 - Cloudflare Scheduled Tasks)
+// ==========================================
+
+// Note: This endpoint is meant to be called by Cloudflare Scheduled Tasks
+// Configure in wrangler.toml: [triggers]
+// crons = ["0 9 * * *"]  // Daily at 9 AM
+
+interface ScheduledTask {
+  id: string
+  user_id: string
+  type: string
+  scheduled_for: string
+  executed_at: string
+  status: string
+  result: string
+}
+
+// Get scheduled tasks for user
+app.get('/scheduled-tasks', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const result = await c.env.DB.prepare(
+    'SELECT * FROM scheduled_tasks WHERE user_id = ? ORDER BY scheduled_for DESC LIMIT 50'
+  ).bind(user.id).all<ScheduledTask>()
+  
+  return c.json({ tasks: result.results })
+})
+
+// Create a scheduled task
+app.post('/scheduled-tasks', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const body = await c.req.json()
+  const { type, scheduledFor } = body
+  
+  if (!type || !scheduledFor) {
+    return c.json({ error: 'Type and scheduledFor required' }, 400)
+  }
+  
+  const id = generateId()
+  const now = new Date().toISOString()
+  
+  await c.env.DB.prepare(
+    `INSERT INTO scheduled_tasks (id, user_id, type, scheduled_for, executed_at, status, result)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).bind(id, user.id, type, scheduledFor, '', 'pending', '{}').run()
+  
+  return c.json({ id, message: 'Task scheduled' })
+})
+
+// Delete scheduled task
+app.delete('/scheduled-tasks/:id', async (c) => {
+  const user = await getUserFromHeader(c.env, c.req.header('Authorization'))
+  if (!user) return c.json({ error: 'Unauthorized' }, 401)
+  
+  const id = c.req.param('id')
+  
+  await c.env.DB.prepare(
+    'DELETE FROM scheduled_tasks WHERE id = ? AND user_id = ?'
+  ).bind(id, user.id).run()
+  
+  return c.json({ message: 'Task deleted' })
+})
+
+// Trigger daily recommendations (for scheduled execution)
+app.post('/cron/daily-recommendations', async (c) => {
+  // This endpoint is called by Cloudflare Scheduled Tasks
+  // It generates daily recommendations for all active users
+  
+  const cronAuth = c.req.header('X-Cron-Auth')
+  const expectedAuth = c.env.CRON_SECRET
+  
+  // Verify cron auth if configured
+  if (expectedAuth && cronAuth !== expectedAuth) {
+    return c.json({ error: 'Unauthorized' }, 401)
+  }
+  
+  try {
+    // Get all users
+    const users = await c.env.DB.prepare(
+      'SELECT id, research_fields FROM users'
+    ).all<{ id: string; research_fields: string }>()
+    
+    const results = []
+    
+    for (const user of users.results) {
+      let fields: string[] = []
+      try {
+        fields = JSON.parse(user.research_fields || '[]')
+      } catch (e) {
+        fields = []
+      }
+      
+      if (fields.length) {
+        // For each user with research fields, generate recommendations
+        // In production, this would create notification records
+        results.push({
+          userId: user.id,
+          fields,
+          generated: true,
+        })
+      }
+    }
+    
+    return c.json({
+      message: 'Daily recommendations processed',
+      usersProcessed: results.length,
+      results,
+    })
+  } catch (error) {
+    console.error('Daily recommendations cron error:', error)
+    return c.json({ error: 'Cron failed', details: String(error) }, 500)
+  }
+})
+
 export default app
