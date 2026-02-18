@@ -135,3 +135,24 @@
 - **Learnings for future iterations:**
   - 通过 repository 层可把未来云同步改造集中到数据层
   - 优先仓储化高频核心模块，可最快降低维护复杂度
+
+## 2026-02-18 10:58 - P0-2/P0-3 仓储层改造
+- P0-2.1: 增量同步 API (已在 worker 中实现)
+- P0-2.2: 改造 Repository 层支持云端模式
+  - papersRepository/tasksRepository/conferencesRepository/submissionsRepository
+  - 添加 cloud sync 集成，CRUD 操作自动同步到云端
+- P0-3.1: 补齐剩余模块仓储化
+  - 新增 remindersRepository (提醒)
+  - 新增 referencesRepository (参考文献)
+  - 新增 outlinesRepository (论文大纲)
+  - 新增 chartsRepository (图表管理)
+  - 新增 writingProgressRepository (写作进度)
+- P0-3.2: storage service 事件机制 (已完成)
+- Files changed:
+  - src/repositories/*.ts (新增5个，修改4个)
+  - src/services/sync.ts
+  - src/services/auth.ts
+  - src/pages/Dashboard.tsx
+- **Learnings:**
+  - Repository 层统一云端同步入口，便于后续扩展
+  - 本地优先架构：所有操作先写本地，有云端时自动同步
