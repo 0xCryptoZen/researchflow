@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
 import { conferencesRepository, type Conference } from '../repositories/conferencesRepository';
+import { discoverConference, KNOWN_CONFERENCE_URLS, addConferenceReminders, removeConferenceReminders, syncConferenceReminders } from '../services/conferences';
 
 export default function Conferences() {
   const [conferences, setConferences] = useState<Conference[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newConf, setNewConf] = useState({ name: '', shortName: '', deadline: '', category: 'other' });
+  const [newConf, setNewConf] = useState({ name: '', shortName: '', deadline: '', category: 'other', website: '' });
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [discoverUrl, setDiscoverUrl] = useState('');
 
   useEffect(() => {
     setConferences(conferencesRepository.getAll());
+    // Sync reminders when conferences load
+    syncConferenceReminders();
   }, []);
 
   const getDaysUntil = (date: string) => {
@@ -35,16 +40,59 @@ export default function Conferences() {
     return colors[category] || colors.other;
   };
 
-  const addConference = () => {
+  const addConference = async () => {
     if (!newConf.name || !newConf.deadline) return;
-    conferencesRepository.add(newConf);
+    
+    const conf = conferencesRepository.add(newConf);
+    // Auto-create reminders
+    addConferenceReminders(conf);
     setConferences(conferencesRepository.getAll());
     setShowAddForm(false);
-    setNewConf({ name: '', shortName: '', deadline: '', category: 'other' });
+    setNewConf({ name: '', shortName: '', deadline: '', category: 'other', website: '' });
+  };
+
+  // Discover conference from URL
+  const discoverFromUrl = async () => {
+    if (!discoverUrl) return;
+    
+    setIsDiscovering(true);
+    try {
+      const info = await discoverConference(discoverUrl);
+      if (info) {
+        setNewConf({
+          name: info.name,
+          shortName: info.shortName,
+          deadline: info.deadline,
+          category: info.category,
+          website: discoverUrl,
+        });
+      }
+    } catch (error) {
+      console.error('Discovery failed:', error);
+    }
+    setIsDiscovering(false);
+  };
+
+  // Add from known conferences
+  const addKnownConference = (key: string) => {
+    const known = KNOWN_CONFERENCE_URLS[key];
+    if (known) {
+      const currentYear = new Date().getFullYear();
+      setNewConf({
+        name: `${known.name} ${currentYear}`,
+        shortName: known.shortName,
+        deadline: '', // User needs to fill this
+        category: known.category,
+        website: known.url,
+      });
+      setShowAddForm(true);
+    }
   };
 
   const deleteConference = (id: string) => {
     conferencesRepository.deleteById(id);
+    // Remove associated reminders
+    removeConferenceReminders(id);
     setConferences(conferencesRepository.getAll());
   };
 
@@ -91,6 +139,43 @@ export default function Conferences() {
         ))}
       </div>
 
+      {/* Quick Add - Known Conferences */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <h3 className="font-semibold mb-3">快速添加知名会议</h3>
+        <div className="flex flex-wrap gap-2">
+          {Object.entries(KNOWN_CONFERENCE_URLS).slice(0, 8).map(([key, conf]) => (
+            <button
+              key={key}
+              onClick={() => addKnownConference(key)}
+              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              {conf.shortName}
+            </button>
+          ))}
+        </div>
+        
+        {/* URL Discovery */}
+        <div className="mt-4 pt-4 border-t">
+          <h4 className="text-sm font-medium text-slate-600 mb-2">从官网抓取</h4>
+          <div className="flex gap-2">
+            <input
+              type="url"
+              placeholder="输入会议官网 URL (如 https://neurips.cc/)"
+              value={discoverUrl}
+              onChange={e => setDiscoverUrl(e.target.value)}
+              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
+            />
+            <button
+              onClick={discoverFromUrl}
+              disabled={isDiscovering || !discoverUrl}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDiscovering ? '抓取中...' : '抓取'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Add Form */}
       {showAddForm && (
         <div className="bg-white rounded-xl border border-slate-200 p-4">
@@ -127,6 +212,13 @@ export default function Conferences() {
               <option value="network">网络</option>
               <option value="other">其他</option>
             </select>
+            <input
+              type="url"
+              placeholder="会议官网 (可选)"
+              value={newConf.website}
+              onChange={e => setNewConf({...newConf, website: e.target.value})}
+              className="px-3 py-2 border border-slate-300 rounded-lg col-span-2"
+            />
           </div>
           <div className="flex gap-2 mt-3">
             <button onClick={addConference} className="px-4 py-2 bg-blue-600 text-white rounded-lg">添加</button>
