@@ -615,6 +615,355 @@ app.get('/search', async (c) => {
   }
 })
 
+// ==========================================
+// DOI Resolution Routes (P2-3.1)
+// ==========================================
+
+// Resolve DOI to get metadata
+app.get('/doi/resolve', async (c) => {
+  const doi = c.req.query('doi')
+  
+  if (!doi) {
+    return c.json({ error: 'DOI parameter required' }, 400)
+  }
+  
+  try {
+    // Clean DOI (remove URL prefix if present)
+    const cleanDoi = doi.replace(/^https?:\/\/doi\.org\//, '').trim()
+    
+    // Use CrossRef API to resolve DOI
+    const response = await fetch(
+      `https://api.crossref.org/works/${encodeURIComponent(cleanDoi)}`,
+      { 
+        headers: { 
+          'Accept': 'application/json',
+          'User-Agent': 'ResearchFlow/1.0 (mailto:support@researchflow.app)'
+        } 
+      }
+    )
+    
+    if (!response.ok) {
+      return c.json({ error: 'DOI not found', doi: cleanDoi }, 404)
+    }
+    
+    const data = await response.json() as any
+    const work = data.message
+    
+    // Extract metadata in standardized format
+    const metadata = {
+      doi: cleanDoi,
+      title: work.title?.[0] || '',
+      authors: work.author?.map((a: any) => `${a.given || ''} ${a.family || ''}`.trim()) || [],
+      year: work.published?.['date-parts']?.[0]?.[0] || work.created?.['date-parts']?.[0]?.[0],
+      journal: work['container-title']?.[0] || work.publisher,
+      volume: work.volume,
+      issue: work.issue,
+      pages: work.page,
+      url: work.URL || `https://doi.org/${cleanDoi}`,
+      abstract: work.abstract?.replace(/<[^>]+>/g, '') || '',
+      type: mapCrossRefType(work.type),
+      issn: work.ISSN,
+      isbn: work.ISBN,
+      doi: cleanDoi,
+    }
+    
+    return c.json({ metadata })
+  } catch (error) {
+    console.error('DOI resolution error:', error)
+    return c.json({ error: 'Failed to resolve DOI', details: String(error) }, 500)
+  }
+})
+
+// Batch resolve multiple DOIs
+app.post('/doi/resolve-batch', async (c) => {
+  const body = await c.req.json()
+  const dois = body.dois || []
+  
+  if (!dois.length || !Array.isArray(dois)) {
+    return c.json({ error: 'Array of DOIs required' }, 400)
+  }
+  
+  const results = await Promise.all(
+    dois.slice(0, 20).map(async (doi: string) => {
+      try {
+        const response = await fetch(
+          `https://api.crossref.org/works/${encodeURIComponent(doi.replace(/^https?:\/\/doi\.org\//, ''))}`,
+          { 
+            headers: { 
+              'Accept': 'application/json',
+              'User-Agent': 'ResearchFlow/1.0 (mailto:support@researchflow.app)'
+            } 
+          }
+        )
+        
+        if (!response.ok) return { doi, error: 'Not found' }
+        
+        const data = await response.json() as any
+        const work = data.message
+        
+        return {
+          doi,
+          title: work.title?.[0] || '',
+          authors: work.author?.map((a: any) => `${a.given || ''} ${a.family || ''}`.trim()) || [],
+          year: work.published?.['date-parts']?.[0]?.[0],
+          journal: work['container-title']?.[0] || work.publisher,
+          type: mapCrossRefType(work.type),
+        }
+      } catch (error) {
+        return { doi, error: String(error) }
+      }
+    })
+  )
+  
+  return c.json({ results })
+})
+
+function mapCrossRefType(type: string): string {
+  const typeMap: Record<string, string> = {
+    'journal-article': 'article',
+    'book': 'book',
+    'book-chapter': 'book',
+    'conference-paper': 'conference',
+    'proceedings-article': 'conference',
+    'dissertation': 'thesis',
+    'dataset': 'misc',
+    'posted-content': 'misc',
+  }
+  return typeMap[type] || 'misc'
+}
+
+// ==========================================
+// Citation Formatting Routes (P2-3.2)
+// ==========================================
+
+// Generate citation in various formats
+app.post('/citations/format', async (c) => {
+  const body = await c.req.json()
+  const { metadata, style = 'bibtex' } = body
+  
+  if (!metadata) {
+    return c.json({ error: 'Metadata required' }, 400)
+  }
+  
+  try {
+    let formatted: string
+    
+    switch (style.toLowerCase()) {
+      case 'bibtex':
+        formatted = formatBibTeX(metadata)
+        break
+      case 'apa':
+        formatted = formatAPA(metadata)
+        break
+      case 'ieee':
+        formatted = formatIEEE(metadata)
+        break
+      case 'mla':
+        formatted = formatMLA(metadata)
+        break
+      case 'chicago':
+        formatted = formatChicago(metadata)
+        break
+      default:
+        formatted = formatBibTeX(metadata)
+    }
+    
+    return c.json({ citation: formatted, style })
+  } catch (error) {
+    console.error('Citation formatting error:', error)
+    return c.json({ error: 'Failed to format citation', details: String(error) }, 500)
+  }
+})
+
+// Batch format citations
+app.post('/citations/format-batch', async (c) => {
+  const body = await c.req.json()
+  const { references, style = 'bibtex' } = body
+  
+  if (!references?.length) {
+    return c.json({ error: 'Array of references required' }, 400)
+  }
+  
+  const results = references.map((ref: any, index: number) => ({
+    id: ref.id || `ref_${index}`,
+    citation: formatCitationByStyle(ref, style),
+    style,
+  }))
+  
+  return c.json({ results })
+})
+
+function formatBibTeX(ref: any): string {
+  const type = ref.type === 'article' ? 'article' :
+               ref.type === 'conference' ? 'inproceedings' :
+               ref.type === 'book' ? 'book' : 'misc'
+  
+  const key = `${ref.authors?.[0]?.split(' ').pop() || 'unknown'}${ref.year || ''}`.toLowerCase()
+  
+  let bibtex = `@${type}{${key},\n`
+  bibtex += `  title = {${ref.title || ''}},\n`
+  
+  if (ref.authors?.length) {
+    bibtex += `  author = {${ref.authors.join(' and ')}},\n`
+  }
+  
+  if (ref.year) bibtex += `  year = {${ref.year}},\n`
+  if (ref.journal) bibtex += `  journal = {${ref.journal}},\n`
+  if (ref.conference) bibtex += `  booktitle = {${ref.conference}},\n`
+  if (ref.volume) bibtex += `  volume = {${ref.volume}},\n`
+  if (ref.issue) bibtex += `  number = {${ref.issue}},\n`
+  if (ref.pages) bibtex += `  pages = {${ref.pages}},\n`
+  if (ref.doi) bibtex += `  doi = {${ref.doi}},\n`
+  if (ref.url) bibtex += `  url = {${ref.url}},\n`
+  if (ref.publisher) bibtex += `  publisher = {${ref.publisher}},\n`
+  
+  bibtex = bibtex.replace(/,\n$/, '\n')
+  bibtex += `}`
+  
+  return bibtex
+}
+
+function formatAPA(ref: any): string {
+  const authors = formatAPAAuthors(ref.authors || [])
+  const year = ref.year ? `(${ref.year})` : '(n.d.)'
+  const title = ref.title || 'Untitled'
+  
+  let citation = `${authors} ${year}. ${title}.`
+  
+  if (ref.journal) {
+    citation += ` *${ref.journal}*`
+    if (ref.volume) citation += `, *${ref.volume}*`
+    if (ref.issue) citation += `(${ref.issue})`
+    if (ref.pages) citation += `, ${ref.pages}`
+    citation += '.'
+  } else if (ref.conference) {
+    citation += ` In *${ref.conference}*`
+    if (ref.pages) citation += ` (pp. ${ref.pages})`
+    citation += '.'
+  }
+  
+  if (ref.doi) {
+    citation += ` https://doi.org/${ref.doi}`
+  } else if (ref.url) {
+    citation += ` ${ref.url}`
+  }
+  
+  return citation
+}
+
+function formatAPAAuthors(authors: string[]): string {
+  if (!authors.length) return 'Unknown Author'
+  if (authors.length === 1) return authors[0]
+  if (authors.length === 2) return `${authors[0]} & ${authors[1]}`
+  if (authors.length <= 20) {
+    const last = authors.pop()
+    return `${authors.join(', ')}, & ${last}`
+  }
+  // More than 20 authors: list first 19, then ellipsis, then last
+  return `${authors.slice(0, 19).join(', ')}, ... ${authors[authors.length - 1]}`
+}
+
+function formatIEEE(ref: any): string {
+  const authors = ref.authors?.length 
+    ? ref.authors.map((name: string, i: number) => {
+        const parts = name.split(' ')
+        if (parts.length > 1) {
+          const last = parts.pop()
+          return `${parts.map((p: string) => p[0] + '.').join(' ')} ${last}`
+        }
+        return name
+      }).join(', ')
+    : 'Unknown Author'
+  
+  const title = ref.title || 'Untitled'
+  let citation = `${authors}, "${title},"`
+  
+  if (ref.journal) {
+    citation += ` *${ref.journal}*`
+    if (ref.volume) citation += `, vol. ${ref.volume}`
+    if (ref.issue) citation += `, no. ${ref.issue}`
+    if (ref.pages) citation += `, pp. ${ref.pages}`
+    if (ref.year) citation += `, ${ref.year}`
+    citation += '.'
+  } else if (ref.conference) {
+    citation += ` in *${ref.conference}*`
+    if (ref.year) citation += `, ${ref.year}`
+    if (ref.pages) citation += `, pp. ${ref.pages}`
+    citation += '.'
+  } else if (ref.year) {
+    citation += ` ${ref.year}.`
+  }
+  
+  return citation
+}
+
+function formatMLA(ref: any): string {
+  const authors = ref.authors?.length
+    ? ref.authors.length === 1 
+      ? ref.authors[0]
+      : ref.authors.length === 2
+        ? `${ref.authors[0]} and ${ref.authors[1]}`
+        : `${ref.authors[0]}, et al`
+    : 'Unknown Author'
+  
+  const title = ref.title ? `"${ref.title}."` : '"Untitled."'
+  let citation = `${authors}. ${title}`
+  
+  if (ref.journal) {
+    citation += ` *${ref.journal}*`
+    if (ref.volume) citation += `, vol. ${ref.volume}`
+    if (ref.issue) citation += `, no. ${ref.issue}`
+    if (ref.year) citation += `, ${ref.year}`
+    if (ref.pages) citation += `, pp. ${ref.pages}`
+    citation += '.'
+  } else if (ref.conference) {
+    citation += ` *${ref.conference}*`
+    if (ref.year) citation += `, ${ref.year}`
+    if (ref.pages) citation += `, pp. ${ref.pages}`
+    citation += '.'
+  }
+  
+  return citation
+}
+
+function formatChicago(ref: any): string {
+  const authors = ref.authors?.length
+    ? ref.authors.join(', ')
+    : 'Unknown Author'
+  
+  const title = ref.title ? `"${ref.title}."` : '"Untitled."'
+  let citation = `${authors}. ${title}`
+  
+  if (ref.journal) {
+    citation += ` *${ref.journal}*`
+    if (ref.volume) citation += ` ${ref.volume}`
+    if (ref.issue) citation += `, no. ${ref.issue}`
+    if (ref.year) citation += ` (${ref.year})`
+    if (ref.pages) citation += `: ${ref.pages}`
+    citation += '.'
+  } else if (ref.conference) {
+    citation += ` Paper presented at *${ref.conference}*`
+    if (ref.year) citation += `, ${ref.year}`
+    citation += '.'
+  }
+  
+  if (ref.doi) {
+    citation += ` https://doi.org/${ref.doi}.`
+  }
+  
+  return citation
+}
+
+function formatCitationByStyle(ref: any, style: string): string {
+  switch (style.toLowerCase()) {
+    case 'apa': return formatAPA(ref)
+    case 'ieee': return formatIEEE(ref)
+    case 'mla': return formatMLA(ref)
+    case 'chicago': return formatChicago(ref)
+    default: return formatBibTeX(ref)
+  }
+}
+
 // Helper functions for academic search
 async function searchGoogleScholar(query: string, limit: number): Promise<any[]> {
   // Use DBLP as primary source since Google Scholar blocks automated requests
