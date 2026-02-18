@@ -136,7 +136,23 @@
   - 通过 repository 层可把未来云同步改造集中到数据层
   - 优先仓储化高频核心模块，可最快降低维护复杂度
 
-## 2026-02-18 11:14 - P0-2.3 离线缓存支持
+## 2026-02-18 11:25 - P1-1.1 接入 Google Scholar 搜索
+- Cloudflare Worker 添加学术搜索 API 端点
+  - /search/scholar: Google Scholar 搜索
+  - /search/ieee: IEEE Xplore 搜索  
+  - /search/acm: ACM DL 搜索
+  - /search: 统一搜索接口
+- 实现 arXiv/DBLP/IEEE/ACM 搜索函数
+- 更新 papers.ts 前端服务调用统一搜索 API
+- 更新 Papers.tsx 支持选择来源 (arXiv/DBLP/Scholar/IEEE/ACM)
+- Files changed:
+  - worker/src/index.ts
+  - src/services/papers.ts
+  - src/pages/Papers.tsx
+- **Learnings:**
+  - Google Scholar 无官方 API，使用 DBLP 作为主要来源
+  - IEEE/ACM 需要 API Key 才能生产使用
+  - 统一搜索入口便于扩展更多来源
 - 新增 Service Worker (public/sw.ts) 实现静态资源缓存
   - Cache-first 策略缓存静态资源
   - 网络失败时返回缓存内容

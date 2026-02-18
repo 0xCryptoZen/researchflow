@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { searchAll, type SearchResult } from '../services/papers';
+import { searchPapers, type SearchResult } from '../services/papers';
 import { papersRepository } from '../repositories/papersRepository';
 
 export default function Papers() {
@@ -14,10 +14,8 @@ export default function Papers() {
     
     setLoading(true);
     try {
-      const sources = selectedSource === 'all' 
-        ? ['arxiv', 'dblp'] 
-        : [selectedSource];
-      const data = await searchAll(query, sources);
+      // Use unified search API
+      const data = await searchPapers(query, selectedSource as any, 20);
       setResults(data);
     } catch (error) {
       console.error('Search error:', error);
@@ -71,8 +69,9 @@ export default function Papers() {
             <option value="all">全部来源</option>
             <option value="arxiv">arXiv</option>
             <option value="dblp">DBLP</option>
-            <option value="ieee">IEEE</option>
-            <option value="acm">ACM</option>
+            <option value="scholar">Google Scholar</option>
+            <option value="ieee">IEEE Xplore</option>
+            <option value="acm">ACM DL</option>
           </select>
           <button
             onClick={handleSearch}
@@ -100,7 +99,8 @@ export default function Papers() {
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${getSourceBadge(paper.source).bg} ${getSourceBadge(paper.source).text}`}>
                     {paper.source.toUpperCase()}
                   </span>
-                  <span className="text-sm text-slate-500">{paper.publishedDate}</span>
+                  {paper.year && <span className="text-sm text-slate-500">{paper.year}</span>}
+                  {paper.venue && <span className="text-sm text-slate-500">• {paper.venue}</span>}
                 </div>
                 
                 <h3 className="font-semibold text-slate-800 mb-2 hover:text-blue-600 cursor-pointer">

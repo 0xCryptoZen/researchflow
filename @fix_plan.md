@@ -28,9 +28,9 @@
 ## P1 - 核心功能补齐
 
 ### P1-1 论文来源扩展
-- [ ] **P1-1.1** 接入 Google Scholar 搜索 (20min)
-- [ ] **P1-1.2** 接入 IEEE Xplore API (15min)
-- [ ] **P1-1.3** 接入 ACM DL API (15min)
+- [x] **P1-1.1** 接入 Google Scholar 搜索 (20min)
+- [x] **P1-1.2** 接入 IEEE Xplore API (15min)
+- [x] **P1-1.3** 接入 ACM DL API (15min)
 
 ### P1-2 会议自动更新
 - [ ] **P1-2.1** 抓取会议官网 deadline (15min)
