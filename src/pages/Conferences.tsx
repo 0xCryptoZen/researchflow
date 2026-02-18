@@ -1,60 +1,60 @@
-import { useState, useEffect } from 'react';
-import { conferencesRepository, type Conference } from '../repositories/conferencesRepository';
-import { discoverConference, KNOWN_CONFERENCE_URLS, addConferenceReminders, removeConferenceReminders, syncConferenceReminders } from '../services/conferences';
+import { useState } from 'react';
+import { useConferences } from '@/hooks/useConferences';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FilterTabs } from '@/components/common';
+import { ConferenceCard } from '@/components/conferences';
+import { EmptyState } from '@/components/common';
+import { ConfirmDialog } from '@/components/common';
+import { Plus, Search, Calendar, Loader2 } from 'lucide-react';
+import { discoverConference, KNOWN_CONFERENCE_URLS } from '@/services/conferences';
+
+const FILTER_OPTIONS = [
+  { value: 'all', label: '全部' },
+  { value: 'upcoming', label: '即将截稿' },
+  { value: 'blockchain', label: '区块链' },
+  { value: 'security', label: '安全' },
+  { value: 'ai', label: '人工智能' },
+  { value: 'network', label: '网络' },
+  { value: 'other', label: '其他' },
+];
 
 export default function Conferences() {
-  const [conferences, setConferences] = useState<Conference[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const {
+    filteredConferences,
+    filter,
+    setFilter,
+    searchQuery,
+    setSearchQuery,
+    addConference,
+    updateConference,
+    deleteConference,
+    isEmpty,
+  } = useConferences();
+
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newConf, setNewConf] = useState({ name: '', shortName: '', deadline: '', category: 'other', website: '' });
+  const [newConf, setNewConf] = useState({
+    name: '',
+    shortName: '',
+    deadline: '',
+    category: 'other' as const,
+    website: '',
+  });
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [discoverUrl, setDiscoverUrl] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  useEffect(() => {
-    setConferences(conferencesRepository.getAll());
-    // Sync reminders when conferences load
-    syncConferenceReminders();
-  }, []);
-
-  const getDaysUntil = (date: string) => {
-    const diff = new Date(date).getTime() - new Date().getTime();
-    return Math.ceil(diff / (1000 * 60 * 60 * 24));
-  };
-
-  const getStatusColor = (days: number) => {
-    if (days < 0) return 'bg-slate-200 text-slate-500';
-    if (days <= 7) return 'bg-red-500 text-white';
-    if (days <= 30) return 'bg-orange-500 text-white';
-    if (days <= 60) return 'bg-yellow-500 text-white';
-    return 'bg-green-500 text-white';
-  };
-
-  const getCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-      blockchain: 'bg-blue-100 text-blue-700',
-      security: 'bg-red-100 text-red-700',
-      ai: 'bg-purple-100 text-purple-700',
-      network: 'bg-green-100 text-green-700',
-      other: 'bg-slate-100 text-slate-700',
-    };
-    return colors[category] || colors.other;
-  };
-
-  const addConference = async () => {
+  const handleAddConference = async () => {
     if (!newConf.name || !newConf.deadline) return;
-    
-    const conf = conferencesRepository.add(newConf);
-    // Auto-create reminders
-    addConferenceReminders(conf);
-    setConferences(conferencesRepository.getAll());
+    addConference(newConf);
     setShowAddForm(false);
     setNewConf({ name: '', shortName: '', deadline: '', category: 'other', website: '' });
   };
 
-  // Discover conference from URL
-  const discoverFromUrl = async () => {
+  const handleDiscover = async () => {
     if (!discoverUrl) return;
-    
     setIsDiscovering(true);
     try {
       const info = await discoverConference(discoverUrl);
@@ -73,197 +73,184 @@ export default function Conferences() {
     setIsDiscovering(false);
   };
 
-  // Add from known conferences
-  const addKnownConference = (key: string) => {
+  const handleAddKnown = (key: string) => {
     const known = KNOWN_CONFERENCE_URLS[key];
     if (known) {
       const currentYear = new Date().getFullYear();
-      setNewConf({
-        name: `${known.name} ${currentYear}`,
+      const nextYear = currentYear + 1;
+      addConference({
+        name: known.name,
         shortName: known.shortName,
-        deadline: '', // User needs to fill this
+        deadline: known.deadline.replace('{year}', nextYear.toString()),
         category: known.category,
         website: known.url,
+        year: nextYear,
       });
-      setShowAddForm(true);
     }
   };
 
-  const deleteConference = (id: string) => {
-    conferencesRepository.deleteById(id);
-    // Remove associated reminders
-    removeConferenceReminders(id);
-    setConferences(conferencesRepository.getAll());
+  const handleDelete = (id: string) => {
+    setDeleteConfirm(id);
   };
 
-  const categories = ['all', 'blockchain', 'security', 'ai', 'network', 'other'];
-  
-  const filteredConfs = selectedCategory === 'all' 
-    ? conferences 
-    : conferences.filter(c => c.category === selectedCategory);
-
-  const sortedConfs = [...filteredConfs].sort((a, b) => 
-    new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-  );
+  const confirmDelete = () => {
+    if (deleteConfirm) {
+      deleteConference(deleteConfirm);
+      setDeleteConfirm(null);
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">会议截稿倒计时</h1>
-          <p className="text-slate-600">{conferences.length} 个会议</p>
+    <div className="container mx-auto py-6 max-w-5xl">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Calendar className="h-6 w-6" />
+          <h1 className="text-2xl font-bold">会议追踪</h1>
         </div>
-        <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          + 添加会议
-        </button>
+        <Button onClick={() => setShowAddForm(true)} disabled={showAddForm}>
+          <Plus className="h-4 w-4 mr-2" />
+          添加会议
+        </Button>
       </div>
 
-      {/* Category Filter */}
-      <div className="flex gap-2 flex-wrap">
-        {categories.map(cat => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-              selectedCategory === cat 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            {cat === 'all' ? '全部' : cat}
-          </button>
-        ))}
+      <div className="mb-6 space-y-4">
+        <FilterTabs
+          options={FILTER_OPTIONS}
+          value={filter}
+          onChange={setFilter}
+        />
+        
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="搜索会议..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Quick Add - Known Conferences */}
-      <div className="bg-white rounded-xl border border-slate-200 p-4">
-        <h3 className="font-semibold mb-3">快速添加知名会议</h3>
+      {showAddForm && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>添加新会议</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="从URL自动发现..."
+                value={discoverUrl}
+                onChange={(e) => setDiscoverUrl(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={handleDiscover} disabled={isDiscovering || !discoverUrl}>
+                {isDiscovering ? <Loader2 className="h-4 w-4 animate-spin" /> : '发现'}
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                placeholder="会议全名 *"
+                value={newConf.name}
+                onChange={(e) => setNewConf({ ...newConf, name: e.target.value })}
+              />
+              <Input
+                placeholder="会议简称"
+                value={newConf.shortName}
+                onChange={(e) => setNewConf({ ...newConf, shortName: e.target.value })}
+              />
+              <Input
+                type="date"
+                value={newConf.deadline}
+                onChange={(e) => setNewConf({ ...newConf, deadline: e.target.value })}
+              />
+              <Select
+                value={newConf.category}
+                onValueChange={(value) => setNewConf({ ...newConf, category: value as any })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择分类" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="blockchain">区块链</SelectItem>
+                  <SelectItem value="security">安全</SelectItem>
+                  <SelectItem value="ai">人工智能</SelectItem>
+                  <SelectItem value="network">网络</SelectItem>
+                  <SelectItem value="other">其他</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                placeholder="会议官网URL"
+                value={newConf.website}
+                onChange={(e) => setNewConf({ ...newConf, website: e.target.value })}
+                className="col-span-2"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setShowAddForm(false)}>
+                取消
+              </Button>
+              <Button onClick={handleAddConference} disabled={!newConf.name || !newConf.deadline}>
+                添加
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Known Conferences Quick Add */}
+      <div className="mb-6">
+        <h3 className="text-sm font-medium mb-2">快速添加知名会议</h3>
         <div className="flex flex-wrap gap-2">
           {Object.entries(KNOWN_CONFERENCE_URLS).slice(0, 8).map(([key, conf]) => (
-            <button
+            <Button
               key={key}
-              onClick={() => addKnownConference(key)}
-              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+              variant="outline"
+              size="sm"
+              onClick={() => handleAddKnown(key)}
             >
               {conf.shortName}
-            </button>
+            </Button>
           ))}
-        </div>
-        
-        {/* URL Discovery */}
-        <div className="mt-4 pt-4 border-t">
-          <h4 className="text-sm font-medium text-slate-600 mb-2">从官网抓取</h4>
-          <div className="flex gap-2">
-            <input
-              type="url"
-              placeholder="输入会议官网 URL (如 https://neurips.cc/)"
-              value={discoverUrl}
-              onChange={e => setDiscoverUrl(e.target.value)}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm"
-            />
-            <button
-              onClick={discoverFromUrl}
-              disabled={isDiscovering || !discoverUrl}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isDiscovering ? '抓取中...' : '抓取'}
-            </button>
-          </div>
         </div>
       </div>
 
-      {/* Add Form */}
-      {showAddForm && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <h3 className="font-semibold mb-3">添加新会议</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="text"
-              placeholder="会议名称"
-              value={newConf.name}
-              onChange={e => setNewConf({...newConf, name: e.target.value})}
-              className="px-3 py-2 border border-slate-300 rounded-lg"
+      {isEmpty ? (
+        <EmptyState
+          icon={Calendar}
+          title="暂无会议"
+          description="添加一个会议来追踪截稿日期"
+          action={{
+            label: '添加会议',
+            onClick: () => setShowAddForm(true),
+          }}
+        />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {filteredConferences.map((conference) => (
+            <ConferenceCard
+              key={conference.id}
+              conference={conference}
+              onDelete={handleDelete}
+              onOpenUrl={(url) => window.open(url, '_blank')}
             />
-            <input
-              type="text"
-              placeholder="简称"
-              value={newConf.shortName}
-              onChange={e => setNewConf({...newConf, shortName: e.target.value})}
-              className="px-3 py-2 border border-slate-300 rounded-lg"
-            />
-            <input
-              type="date"
-              value={newConf.deadline}
-              onChange={e => setNewConf({...newConf, deadline: e.target.value})}
-              className="px-3 py-2 border border-slate-300 rounded-lg"
-            />
-            <select
-              value={newConf.category}
-              onChange={e => setNewConf({...newConf, category: e.target.value})}
-              className="px-3 py-2 border border-slate-300 rounded-lg"
-            >
-              <option value="blockchain">区块链</option>
-              <option value="security">安全</option>
-              <option value="ai">AI</option>
-              <option value="network">网络</option>
-              <option value="other">其他</option>
-            </select>
-            <input
-              type="url"
-              placeholder="会议官网 (可选)"
-              value={newConf.website}
-              onChange={e => setNewConf({...newConf, website: e.target.value})}
-              className="px-3 py-2 border border-slate-300 rounded-lg col-span-2"
-            />
-          </div>
-          <div className="flex gap-2 mt-3">
-            <button onClick={addConference} className="px-4 py-2 bg-blue-600 text-white rounded-lg">添加</button>
-            <button onClick={() => setShowAddForm(false)} className="px-4 py-2 bg-slate-100 text-slate-600 rounded-lg">取消</button>
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Conferences List */}
-      <div className="space-y-3">
-        {sortedConfs.map(conf => {
-          const days = getDaysUntil(conf.deadline);
-          const isPast = days < 0;
-          
-          return (
-            <div key={conf.id} className="bg-white rounded-xl border border-slate-200 p-4 flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${getCategoryColor(conf.category)}`}>
-                    {conf.category}
-                  </span>
-                </div>
-                <h3 className="font-semibold text-slate-800">{conf.shortName} {conf.year}</h3>
-                <p className="text-sm text-slate-500">截稿: {conf.deadline}</p>
-              </div>
-              
-              <div className="text-center mx-4">
-                <div className={`px-4 py-2 rounded-lg font-bold ${getStatusColor(days)}`}>
-                  {isPast ? '已截稿' : days}
-                </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  {isPast ? '' : '天'}
-                </div>
-              </div>
-              
-              <button
-                onClick={() => deleteConference(conf.id)}
-                className="p-2 text-slate-400 hover:text-red-500"
-              >
-                🗑
-              </button>
-            </div>
-          );
-        })}
-      </div>
+      <ConfirmDialog
+        open={!!deleteConfirm}
+        onOpenChange={(open) => !open && setDeleteConfirm(null)}
+        title="删除会议"
+        description="确定要删除这个会议吗？"
+        confirmLabel="删除"
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
