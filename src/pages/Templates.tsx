@@ -6,6 +6,8 @@ interface Template {
   downloads: number;
   description: string;
   lastUpdated: string;
+  content?: string;  // LaTeX source for preview
+  url?: string;      // Download URL
 }
 
 const templates: Template[] = [
@@ -17,6 +19,30 @@ const templates: Template[] = [
     downloads: 15420,
     description: 'Official IEEE conference paper template with proper formatting guidelines',
     lastUpdated: '2026-01-15',
+    url: 'https://www.ieee.org/publications/latex-templates/ieeeconf-latex.zip',
+    content: `\\documentclass[conference]{IEEEtran}
+\\usepackage[utf8]{inputenc}
+\\usepackage{graphicx}
+\\usepackage{amsmath}
+
+\\title{Your Paper Title Here}
+\\author{Author Name}
+
+\\begin{document}
+\\maketitle
+
+\\begin{abstract}
+This is the abstract of your paper.
+\\end{abstract}
+
+\\section{Introduction}
+Your introduction goes here.
+
+\\section{Conclusion}
+Your conclusion goes here.
+
+\\bibliography{references}
+\\end{document}`,
   },
   {
     id: '2',
@@ -26,6 +52,22 @@ const templates: Template[] = [
     downloads: 8932,
     description: 'ACM SIGCHI proceedings template for human-computer interaction',
     lastUpdated: '2026-01-20',
+    url: 'https://www.acm.org/publications/proceedings-template',
+    content: `\\documentclass[sigchi]{acmart}
+\\usepackage{graphicx}
+
+\\title{Your Paper Title}
+\\author{Author Name}
+
+\\begin{document}
+\\maketitle
+
+\\section{Introduction}
+Your content here.
+
+\\section{Conclusion}
+Your conclusion here.
+\\end{document}`,
   },
   {
     id: '3',
@@ -35,6 +77,7 @@ const templates: Template[] = [
     downloads: 12450,
     description: 'IEEE Transactions journal template with two-column format',
     lastUpdated: '2026-02-01',
+    url: 'https://www.ieee.org/publications/latex-templates/',
   },
   {
     id: '4',
@@ -44,6 +87,7 @@ const templates: Template[] = [
     downloads: 5621,
     description: 'USENIX Security Symposium template',
     lastUpdated: '2026-01-10',
+    url: 'https://www.usenix.org//publications/templates',
   },
   {
     id: '5',
@@ -53,6 +97,7 @@ const templates: Template[] = [
     downloads: 3210,
     description: 'Network and Distributed System Security Symposium template',
     lastUpdated: '2026-01-25',
+    url: 'https://ndss-symposium.org/submissions/',
   },
   {
     id: '6',
@@ -62,6 +107,32 @@ const templates: Template[] = [
     downloads: 25000,
     description: 'Standard arXiv preprint template',
     lastUpdated: '2026-02-05',
+    url: 'https://arxiv.org/help/latex',
+    content: `\\documentclass{article}
+\\usepackage[utf8]{inputenc}
+\\usepackage{graphicx}
+\\usepackage{amsmath}
+
+\\title{Your Title Here}
+\\author{Author Name}
+\\date{\\today}
+
+\\begin{document}
+\\maketitle
+
+\\begin{abstract}
+Your abstract here.
+\\end{abstract}
+
+\\section{Introduction}
+Your introduction.
+
+\\section{Conclusion}
+Your conclusion.
+
+\\bibliographystyle{plain}
+\\bibliography{references}
+\\end{document}`,
   },
 ];
 
@@ -71,6 +142,7 @@ export default function Templates() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFormat, setSelectedFormat] = useState<string>('all');
   const [selectedConference, setSelectedConference] = useState<string>('all');
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
 
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -81,6 +153,34 @@ export default function Templates() {
   });
 
   const conferences = [...new Set(templates.map(t => t.conference))];
+
+  // Handle download
+  const handleDownload = (template: Template) => {
+    if (template.url) {
+      window.open(template.url, '_blank');
+    } else {
+      // Generate and download LaTeX file
+      const content = template.content || '';
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${template.name.replace(/\s+/g, '_')}.tex`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  // Handle clone (copy to clipboard)
+  const handleClone = async (template: Template) => {
+    const content = template.content || '';
+    try {
+      await navigator.clipboard.writeText(content);
+      alert('模板已复制到剪贴板！');
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -142,12 +242,27 @@ export default function Templates() {
               <span>🕐 {template.lastUpdated}</span>
             </div>
             <div className="flex gap-2">
-              <button className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+              <button 
+                onClick={() => handleDownload(template)}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+              >
                 📥 下载
               </button>
-              <button className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm">
-                👁️ 预览
+              <button 
+                onClick={() => handleClone(template)}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                title="复制到剪贴板"
+              >
+                📋 克隆
               </button>
+              {template.content && (
+                <button 
+                  onClick={() => setPreviewTemplate(template)}
+                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                >
+                  👁️ 预览
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -171,6 +286,45 @@ export default function Templates() {
           上传模板
         </button>
       </div>
+
+      {/* 模板预览弹窗 */}
+      {previewTemplate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-4xl h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h3 className="text-lg font-semibold">{previewTemplate.name}</h3>
+                <p className="text-sm text-gray-500">{previewTemplate.conference}</p>
+              </div>
+              <button 
+                onClick={() => setPreviewTemplate(null)}
+                className="p-2 hover:bg-gray-100 rounded"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 bg-gray-50">
+              <pre className="text-sm font-mono whitespace-pre-wrap bg-white p-4 rounded border">
+                {previewTemplate.content || '预览内容不可用'}
+              </pre>
+            </div>
+            <div className="flex gap-2 p-4 border-t">
+              <button 
+                onClick={() => handleDownload(previewTemplate)}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                📥 下载
+              </button>
+              <button 
+                onClick={() => handleClone(previewTemplate)}
+                className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
+              >
+                📋 克隆到剪贴板
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
