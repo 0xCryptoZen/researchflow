@@ -82,19 +82,23 @@ export default function Tasks() {
   };
 
   return (
-    <div className="container mx-auto py-6 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <ListTodo className="h-6 w-6" />
-          <h1 className="text-2xl font-bold">任务管理</h1>
+    <div className="space-y-4">
+      {/* 页面标题 */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[rgba(16,185,129,0.1)] flex items-center justify-center">
+            <ListTodo className="h-4 w-4 text-[#34D399]" />
+          </div>
+          <h1 className="text-lg font-semibold text-[#EDEDEF]">任务管理</h1>
         </div>
-        <Button onClick={() => setShowForm(true)} disabled={showForm}>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button onClick={() => setShowForm(true)} disabled={showForm} size="sm">
+          <Plus className="h-3.5 w-3.5 mr-1.5" />
           添加任务
         </Button>
       </div>
 
-      <div className="mb-6">
+      {/* 筛选标签 */}
+      <div className="mb-4">
         <FilterTabs
           options={filterOptions}
           value={filter}
@@ -102,12 +106,13 @@ export default function Tasks() {
         />
       </div>
 
+      {/* 添加/编辑表单 */}
       {showForm && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>{editingTask ? '编辑任务' : '添加新任务'}</CardTitle>
+        <Card className="mb-4 animate-scale-in">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">{editingTask ? '编辑任务' : '添加新任务'}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <TaskForm
               form={form}
               papers={papers}
@@ -121,6 +126,7 @@ export default function Tasks() {
         </Card>
       )}
 
+      {/* 任务列表 */}
       <TaskList
         tasks={filteredTasks}
         onToggle={toggleTaskStatus}
@@ -129,6 +135,7 @@ export default function Tasks() {
         emptyMessage="暂无任务"
       />
 
+      {/* 删除确认对话框 */}
       <ConfirmDialog
         open={!!deleteConfirm}
         onOpenChange={(open) => !open && setDeleteConfirm(null)}

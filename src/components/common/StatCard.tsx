@@ -24,21 +24,21 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'flex flex-col gap-2 rounded-xl border bg-card p-6 shadow-sm',
+        'flex flex-col gap-2 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#18181B] p-4 transition-all duration-200',
         className
       )}
     >
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">{title}</span>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+        <span className="text-[11px] font-medium text-[#71717A] uppercase tracking-wider">{title}</span>
+        <Icon className="h-3.5 w-3.5 text-[#52525B]" />
       </div>
-      <div className="flex items-baseline gap-2">
-        <span className="text-3xl font-bold">{value}</span>
+      <div className="flex items-baseline gap-1.5">
+        <span className="text-2xl font-semibold text-[#EDEDEF] tracking-tight">{value}</span>
         {trend && (
           <span
             className={cn(
-              'text-sm font-medium',
-              trend.isPositive ? 'text-green-500' : 'text-red-500'
+              'text-[11px] font-medium',
+              trend.isPositive ? 'text-[#34D399]' : 'text-[#FB7185]'
             )}
           >
             {trend.isPositive ? '+' : '-'}
@@ -47,7 +47,7 @@ export function StatCard({
         )}
       </div>
       {description && (
-        <span className="text-xs text-muted-foreground">{description}</span>
+        <span className="text-[11px] text-[#52525B]">{description}</span>
       )}
     </div>
   );

@@ -1,53 +1,58 @@
 @import "tailwindcss";
 
-/* 学术书卷风格 - 古铜棕主题 */
+/* Linear 设计风格 - 暗色主题 */
 @theme {
-  --color-primary: #8B5A2B;
+  /* 主色调 - 蓝紫色调 */
+  --color-primary: #5E6AD2;
   --color-primary-foreground: #ffffff;
   
-  --color-secondary: #D4A574;
-  --color-secondary-foreground: #2C1810;
+  --color-secondary: #2A2A30;
+  --color-secondary-foreground: #EDEDEF;
   
-  --color-accent: #C4956A;
-  --color-accent-foreground: #2C1810;
+  --color-accent: #5E6AD2;
+  --color-accent-foreground: #ffffff;
   
-  --color-background: #FAF6F1;
-  --color-foreground: #2C1810;
+  /* 背景色 - 深色 */
+  --color-background: #0D0D0F;
+  --color-foreground: #EDEDEF;
   
-  --color-card: #FFFFFF;
-  --color-card-foreground: #2C1810;
+  --color-card: #18181B;
+  --color-card-foreground: #EDEDEF;
   
-  --color-popover: #FFFFFF;
-  --color-popover-foreground: #2C1810;
+  --color-popover: #18181B;
+  --color-popover-foreground: #EDEDEF;
   
-  --color-muted: #F5EDE3;
-  --color-muted-foreground: #6B5344;
+  --color-muted: #27272A;
+  --color-muted-foreground: #A1A1AA;
   
-  --color-border: #E8DFD5;
-  --color-input: #E8DFD5;
+  /* 极细描边 */
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-input: rgba(255, 255, 255, 0.08);
   
-  --color-ring: #8B5A2B;
+  --color-ring: #5E6AD2;
   
-  --color-destructive: #A65D4E;
+  --color-destructive: #F43F5E;
   --color-destructive-foreground: #ffffff;
+  
+  /* 状态颜色 */
+  --color-reviewing: #F59E0B;
+  --color-accepted: #10B981;
+  --color-revising: #F59E0B;
+  --color-pending: #8B5CF6;
+  --color-draft: #6B7280;
+  
+  /* 自定义颜色 */
+  --color-surface: #121212;
+  --color-surface-hover: #1A1A1E;
+  --color-surface-active: #222226;
+  --color-border-light: rgba(255, 255, 255, 0.06);
+  --color-border-focus: rgba(94, 106, 210, 0.5);
+  --color-glow: rgba(94, 106, 210, 0.15);
 }
 
-/* 状态颜色 */
-@theme {
-  --color-reviewing: #E8A54B;
-  --color-accepted: #4A7C59;
-  --color-revising: #D4A03A;
-  --color-pending: #7B5AA6;
-  --color-draft: #8B9AA3;
-}
-
+/* 字体 - 使用 Inter/Geist */
 :root {
-  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-}
-
-/* 标题字体 */
-h1, h2, h3, h4, h5, h6 {
-  font-family: "Noto Serif SC", Georgia, serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
@@ -55,37 +60,172 @@ body {
   min-height: 100vh;
   background-color: var(--color-background);
   color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* 渐入动画 */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { 
+    opacity: 0; 
+    transform: translateY(8px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
 }
 
+@keyframes fadeInUp {
+  from { 
+    opacity: 0; 
+    transform: translateY(16px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0; 
+    transform: scale(0.96); 
+  }
+  to { 
+    opacity: 1; 
+    transform: scale(1); 
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 动画类 */
 .animate-fade-in {
   animation: fadeIn 0.3s ease forwards;
 }
 
-/* 学术风格卡片 */
-.academic-card {
+.animate-fade-in-up {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* 延迟动画 */
+.delay-75 { animation-delay: 75ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-225 { animation-delay: 225ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-375 { animation-delay: 375ms; }
+.delay-450 { animation-delay: 450ms; }
+
+/* Linear 风格卡片 */
+.linear-card {
   background: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: 12px;
   transition: all 0.2s ease;
 }
 
-.academic-card:hover {
-  box-shadow: 0 4px 12px rgba(44, 24, 16, 0.08);
-  border-color: #A67C52;
+.linear-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--color-surface-hover);
 }
 
 /* 状态标签 */
 .status-tag {
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
   font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* 外发光效果 */
+.glow {
+  box-shadow: 0 0 20px var(--color-glow), 0 0 40px rgba(94, 106, 210, 0.08);
+}
+
+.glow-subtle {
+  box-shadow: 0 0 15px rgba(94, 106, 210, 0.1);
+}
+
+/* 模糊背景 */
+.backdrop-blur-card {
+  background: rgba(24, 24, 27, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* 聚焦效果 */
+.focus-ring {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-glow);
+}
+
+/* 渐变文字 */
+.gradient-text {
+  background: linear-gradient(135deg, #fff 0%, #a1a1aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* 主按钮渐变 */
+.btn-gradient {
+  background: linear-gradient(135deg, #5E6AD2 0%, #7C3AED 100%);
+  border: none;
+}
+
+.btn-gradient:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(94, 106, 210, 0.3);
+}
+
+/* 浮动效果 */
+.float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+#root {
+  min-height: 100vh;
 }
